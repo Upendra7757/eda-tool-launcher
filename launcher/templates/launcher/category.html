@@ -1,0 +1,205 @@
+{% extends "launcher/base.html" %}
+{% block content %}
+
+<style>
+body {
+  background: linear-gradient(135deg, #1e1b4b, #4c1d95, #312e81, #1e3a8a);
+  background-size: 400% 400%;
+  animation: gradientShift 18s ease infinite;
+}
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.app-card {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 18px;
+  padding: 22px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.30);
+}
+
+.btn-primary {
+  background: linear-gradient(90deg,#5b21b6,#7c3aed,#8b5cf6);
+  color: white;
+  border-radius: 12px;
+  padding: 10px 22px;
+  transition: .3s;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(124,58,237,0.45);
+}
+
+.btn-secondary {
+  background: linear-gradient(90deg,#047857,#059669,#10b981);
+  color: white;
+  border-radius: 12px;
+  padding: 10px 22px;
+  transition: .3s;
+}
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(16,185,129,0.45);
+}
+</style>
+
+<!-- HEADER -->
+<div class="mb-10">
+  <h1 class="text-4xl font-extrabold text-white">{{ category.name }}</h1>
+  <p class="text-gray-200">Select a tool to launch</p>
+</div>
+
+<!-- TOOL LIST -->
+<div class="space-y-8">
+
+{% for tool in tools %}
+<div id="card-{{ tool.slug }}" class="tool-card app-card transition hover:shadow-xl">
+
+  <!-- HEADER -->
+  <div class="flex justify-between items-start">
+
+    <!-- ICON + TEXT -->
+    <div class="flex items-center gap-4">
+
+      <!-- TOOL ICON -->
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center
+                  bg-white/20 border border-white/30 backdrop-blur">
+
+        {% if tool.slug == "verilator" %}
+        <!-- Verilator / Simulation -->
+        <svg class="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" stroke-width="2"
+             viewBox="0 0 24 24">
+          <path d="M3 6h12M3 12h18M3 18h12"/>
+        </svg>
+
+        {% elif tool.slug == "klayout" %}
+        <!-- KLayout -->
+        <svg class="w-8 h-8 text-purple-300" fill="none" stroke="currentColor" stroke-width="1.8"
+             viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M3 9h18M9 3v18"/>
+        </svg>
+
+        {% elif tool.slug == "magic" %}
+        <!-- Magic -->
+        <svg class="w-8 h-8 text-pink-300" fill="none" stroke="currentColor" stroke-width="1.8"
+             viewBox="0 0 24 24">
+          <path d="M12 2l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/>
+        </svg>
+
+        {% elif tool.slug == "custom-layout-editor" %}
+        <!-- Custom Layout Editor -->
+        <svg class="w-8 h-8 text-teal-300" fill="none" stroke="currentColor" stroke-width="1.8"
+             viewBox="0 0 24 24">
+          <rect x="4" y="4" width="16" height="16"/>
+          <path d="M4 9h16M9 4v16"/>
+        </svg>
+
+        {% else %}
+        <!-- Default -->
+        <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.6"
+             viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"/>
+        </svg>
+        {% endif %}
+
+      </div>
+
+      <!-- TOOL NAME -->
+      <div>
+        <h2 class="text-2xl font-semibold text-white">{{ tool.name }}</h2>
+        <p class="text-gray-200 text-sm">{{ tool.description }}</p>
+      </div>
+
+    </div>
+
+    <!-- LAUNCH -->
+    <button class="btn-primary"
+            onclick="toggleLaunchPanel('{{ tool.slug }}')">
+      Launch
+    </button>
+
+  </div>
+
+  <!-- EXPAND PANEL -->
+  <div id="panel-{{ tool.slug }}" class="hidden mt-6 border-t border-white/30 pt-6">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+
+      <button class="btn-primary py-3 text-lg"
+              onclick="launchDesktop('{{ tool.slug }}')">
+        Launch Desktop
+      </button>
+
+      <button class="btn-secondary py-3 text-lg"
+              onclick="launchWeb('{{ tool.slug }}')">
+        Launch Web
+      </button>
+
+    </div>
+
+    <div id="status-{{ tool.slug }}" class="text-gray-200 mb-4"></div>
+
+    <button onclick="resetToolList()"
+            class="mt-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30">
+      ← Back to Tools
+    </button>
+
+  </div>
+</div>
+{% endfor %}
+
+</div>
+
+<script>
+function toggleLaunchPanel(slug) {
+  const cards = document.querySelectorAll(".tool-card");
+  const panel = document.getElementById("panel-" + slug);
+  const card  = document.getElementById("card-" + slug);
+
+  if (!panel.classList.contains("hidden")) {
+    resetToolList();
+    return;
+  }
+
+  cards.forEach(c => c.classList.add("hidden"));
+  card.classList.remove("hidden");
+  panel.classList.remove("hidden");
+}
+
+function resetToolList() {
+  document.querySelectorAll(".tool-card").forEach(card => card.classList.remove("hidden"));
+  document.querySelectorAll("[id^='panel-']").forEach(p => p.classList.add("hidden"));
+}
+
+function launchDesktop(slug) {
+  const status = document.getElementById("status-" + slug);
+  status.innerText = "Launching desktop tool...";
+  fetch(`/launch-desktop/${slug}/`, {
+    method: "POST",
+    headers: { "X-CSRFToken": "{{ csrf_token }}" }
+  })
+  .then(r => r.json())
+  .then(d => status.innerText = d.ok ? d.message : d.error);
+}
+
+function launchWeb(slug) {
+  const status = document.getElementById("status-" + slug);
+  status.innerText = "Opening web workspace...";
+  fetch(`/launch-web/${slug}/`, {
+    method: "POST",
+    headers: { "X-CSRFToken": "{{ csrf_token }}" }
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.ok && d.url) window.location.href = d.url;
+    else status.innerText = d.error;
+  });
+}
+</script>
+
+{% endblock %}

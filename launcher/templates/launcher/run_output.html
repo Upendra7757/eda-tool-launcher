@@ -1,0 +1,17 @@
+{% extends "launcher/base.html" %}
+{% block content %}
+<h2 class="text-xl font-semibold mb-4">Run Output</h2>
+<div class="bg-white p-4 rounded shadow">
+  <h4 class="font-medium">Stdout</h4>
+  <pre class="text-xs bg-gray-50 p-2 rounded">{{ stdout }}</pre>
+
+  <h4 class="font-medium mt-4">Stderr</h4>
+  <pre class="text-xs bg-gray-50 p-2 rounded">{{ stderr }}</pre>
+
+  {% if workdir %}
+  <div class="mt-4">
+    <a class="text-indigo-600" href="{% url 'serve-upload' workdir %}">Open Workdir</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

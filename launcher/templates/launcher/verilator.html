@@ -1,0 +1,332 @@
+{% extends "launcher/base.html" %}
+{% block content %}
+
+<!-- ====================================================================== -->
+<!--  VERILATOR — PREMIUM UI (Theme 2 Polished Edition)                      -->
+<!-- ====================================================================== -->
+
+<style>
+/* ---------------------------- GLASS EFFECT ---------------------------- */
+.glass {
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  border: 1px solid rgba(255,255,255,0.35);
+}
+
+/* ---------------------------- CONSOLE PANEL ---------------------------- */
+.console-glass {
+  background: rgba(10,11,13,0.85);
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 6px 30px rgba(12,15,20,0.35);
+}
+
+.console {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 13px;
+  color: #8bff97;
+  padding: 16px;
+  border-radius: 12px;
+  min-height: 240px;
+  max-height: 520px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* ---------------------------- BUTTON STYLES ----------------------------- */
+.btn-gradient {
+  background: linear-gradient(90deg,#5b21b6, #7c3aed, #8b5cf6);
+  box-shadow: 0 6px 20px rgba(124,58,237,0.22);
+  transition: all .25s ease;
+}
+.btn-gradient:hover { transform: translateY(-2px); }
+
+/* Reset button */
+.btn-reset {
+  border: 1px solid #ddd;
+  background: white;
+  transition: .2s;
+}
+.btn-reset:hover { background:#f9f9f9; }
+
+/* Loader spinner */
+.loader {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.35);
+  border-top-color: white;
+  animation: spin 0.8s linear infinite;
+  display: none; /* hidden by default */
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------------------------- WAVEFORM CARD ---------------------------- */
+.wf-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 14px;
+  border-radius: 14px;
+}
+
+/* File input styling */
+.file-input {
+  border-radius: 10px;
+  border: 1px dashed rgba(99,102,241,0.35);
+  background: rgba(241,241,255,0.35);
+}
+
+/* Two-column grid for desktops */
+@media (min-width: 1024px) {
+  .two-column-grid {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 32px;
+    align-items: start;
+  }
+}
+</style>
+
+
+
+<!-- ====================================================================== -->
+<!-- PAGE HEADER -->
+<!-- ====================================================================== -->
+<div class="mb-8">
+  <h1 class="text-4xl font-extrabold tracking-tight text-gray-900">Verilator — Web Simulation Workspace</h1>
+  <p class="text-gray-600 mt-2 text-lg">Server-powered SystemVerilog simulator with automatic waveform generation.</p>
+</div>
+
+
+<!-- Web Mode Banner -->
+{% if webmode %}
+<div class="p-4 mb-6 rounded-lg border border-green-200 bg-green-50 text-green-800">
+  <strong>Web Mode Enabled</strong> — Launched from:
+  <span class="font-medium">{{ launched_from }}</span>
+</div>
+{% endif %}
+
+
+
+<!-- ====================================================================== -->
+<!-- MAIN LAYOUT -->
+<!-- ====================================================================== -->
+<div class="two-column-grid">
+
+
+<!-- ====================================================================== -->
+<!-- LEFT PANEL / SIMULATION WORKSPACE -->
+<!-- ====================================================================== -->
+<div class="glass rounded-2xl p-8 shadow-md">
+
+  <!-- Title Row -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-semibold text-gray-900">Simulation Workspace</h2>
+      <p class="text-sm text-gray-600 mt-1">Compile & simulate Verilog/SystemVerilog files using Verilator.</p>
+    </div>
+    <span class="px-3 py-1 text-xs rounded-full bg-white/50">Server Mode</span>
+  </div>
+
+
+  <!-- Simulation Form -->
+  <div class="p-6 rounded-xl bg-white/60 border border-white/30">
+    <form id="simForm" method="post" enctype="multipart/form-data"
+          action="{% url 'launcher-run-tool' 'verilator' %}">
+      {% csrf_token %}
+
+      <!-- File Input -->
+      <label class="block text-sm font-medium text-gray-700 mb-2">Source File</label>
+      <div class="mb-4">
+        <input type="file" name="file" class="file-input p-3 w-full" required>
+        <p class="text-xs text-gray-500 mt-2">Accepted: .v / .sv</p>
+      </div>
+
+      <!-- Env selection -->
+      <label class="block text-sm font-medium text-gray-700 mb-2">Environment</label>
+      <div class="mb-6">
+        <select name="env" class="p-3 border rounded-lg w-full bg-white">
+          {% for env in envs %}
+            <option value="{{ env.name }}">{{ env.name }}{% if env.is_default %} (Default){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+
+      <!-- Buttons -->
+      <div class="flex items-center gap-3 mt-4">
+
+        <!-- Run Simulation -->
+        <button id="runBtn" type="submit"
+                class="btn-gradient text-white px-6 py-3 rounded-xl text-lg font-medium flex items-center gap-2">
+          ▶ Run Simulation
+          <div id="loader" class="loader"></div>
+        </button>
+
+        <!-- Reset -->
+        <button id="resetBtn" type="button"
+                class="btn-reset px-4 py-2 rounded-lg text-gray-700">
+          Reset
+        </button>
+
+        <!-- Status -->
+        <div id="runStatus" class="ml-auto text-sm text-gray-600"></div>
+      </div>
+    </form>
+  </div>
+
+
+
+  <!-- ==================================================================== -->
+  <!-- SIMULATION OUTPUT -->
+  <!-- ==================================================================== -->
+  <div id="outputWrap" class="mt-10 opacity-0 transition-all duration-500">
+    <h3 class="text-lg font-semibold text-gray-900 mb-3">Simulation Output</h3>
+
+    <div class="console-glass rounded-xl">
+      <div id="outputPanel" class="console">No output yet. Run simulation to see logs here.</div>
+    </div>
+  </div>
+
+</div> <!-- end left -->
+
+
+
+<!-- ====================================================================== -->
+<!-- RIGHT PANEL / WAVEFORM + EXTRA INFO -->
+<!-- ====================================================================== -->
+<aside class="space-y-6">
+
+
+  <!-- Waveform Viewer Card -->
+  <div class="wf-card glass p-6 shadow-sm">
+    <h4 class="text-lg font-semibold text-gray-900 mb-1">Waveform Viewer</h4>
+    <p class="text-sm text-gray-500 mb-3">View or download the generated VCD waveform.</p>
+
+    <div class="space-y-3">
+      <a id="waveformBtn" href="#" target="_blank"
+         class="block text-center px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow hover:opacity-95">
+        Open VCD
+      </a>
+
+      <a id="downloadVcd" href="#" download
+         class="block text-center px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700">
+        Download VCD
+      </a>
+
+      <p id="waveInfo" class="text-xs text-gray-500">No waveform available.</p>
+    </div>
+  </div>
+
+
+  <!-- Tips -->
+  <div class="glass rounded-xl p-5">
+    <h5 class="text-sm font-semibold text-gray-900 mb-2">Tips</h5>
+    <ul class="text-xs text-gray-600 space-y-1 list-disc ml-4">
+      <li>Ensure your module name matches file name (auto-fixed).</li>
+      <li>Small testbenches execute faster.</li>
+      <li>Use SystemVerilog (.sv) for advanced constructs.</li>
+    </ul>
+  </div>
+
+
+  <!-- Recent Runs -->
+  <div class="glass rounded-xl p-5">
+    <h5 class="text-sm font-semibold text-gray-900 mb-2">Recent Runs</h5>
+    <div id="recentRuns" class="text-xs text-gray-600">— none yet —</div>
+  </div>
+
+</aside>
+
+</div> <!-- end grid -->
+
+
+
+<!-- ====================================================================== -->
+<!-- JAVASCRIPT -->
+<!-- ====================================================================== -->
+<script>
+const simForm = document.getElementById("simForm");
+const runBtn = document.getElementById("runBtn");
+const loader = document.getElementById("loader");
+const outputWrap = document.getElementById("outputWrap");
+const outputPanel = document.getElementById("outputPanel");
+const runStatus = document.getElementById("runStatus");
+const resetBtn = document.getElementById("resetBtn");
+const waveformBtn = document.getElementById("waveformBtn");
+const downloadVcd = document.getElementById("downloadVcd");
+const waveInfo = document.getElementById("waveInfo");
+const recentRuns = document.getElementById("recentRuns");
+
+let lastVcd = null;
+
+// Loader control
+function startLoader() {
+  loader.style.display = "inline-block";
+  runBtn.disabled = true;
+  runBtn.style.opacity = "0.7";
+}
+function stopLoader() {
+  loader.style.display = "none";
+  runBtn.disabled = false;
+  runBtn.style.opacity = "1";
+}
+
+// Reset
+resetBtn.addEventListener("click", () => {
+  simForm.reset();
+  outputPanel.textContent = "No output yet. Run simulation to see logs here.";
+  outputWrap.classList.remove("opacity-100");
+  waveformBtn.href = "#";
+  downloadVcd.href = "#";
+  waveInfo.textContent = "No waveform available";
+});
+
+
+// Run Simulation
+simForm.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+
+  startLoader();
+  runStatus.textContent = "Running...";
+  outputPanel.textContent = "";
+  outputWrap.classList.remove("opacity-0");
+
+  const fd = new FormData(simForm);
+
+  try {
+    const resp = await fetch(simForm.action, { method: "POST", body: fd });
+    const data = await resp.json();
+
+    outputPanel.textContent = (data.stdout || "") + "\n" + (data.stderr || "");
+
+    runStatus.textContent = data.ok ? "Completed" : "Failed";
+
+    if (data.vcd) {
+      lastVcd = data.vcd;
+      waveformBtn.href = lastVcd;
+      downloadVcd.href = lastVcd;
+      waveInfo.textContent = "Waveform generated.";
+    }
+
+    // Auto-scroll
+    setTimeout(() => {
+      outputWrap.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 350);
+
+    // Recent run log
+    const now = new Date().toLocaleString();
+    recentRuns.innerHTML =
+      `<div class="mb-2"><strong>${now}</strong> — ${data.ok ? "Success" : "Error"}</div>` +
+      recentRuns.innerHTML;
+
+  } catch (error) {
+    outputPanel.textContent = "Error: " + error;
+    runStatus.textContent = "Error";
+  } finally {
+    stopLoader();
+  }
+});
+</script>
+
+{% endblock %}

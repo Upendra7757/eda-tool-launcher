@@ -1,0 +1,33 @@
+{% extends "launcher/base.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-4">KLayout – Web Viewer</h1>
+<p class="text-gray-600 mb-6">View and explore GDS2 / OASIS layouts directly in your browser.</p>
+
+<div class="bg-white p-6 rounded-xl shadow">
+  <h2 class="text-xl font-semibold mb-4">Upload GDS</h2>
+
+  <form id="gdsForm" enctype="multipart/form-data">
+    <input type="file" name="gds_file" class="p-2 border rounded w-full" accept=".gds,.oas" required>
+    <button type="submit" class="w-full mt-4 py-3 bg-indigo-600 text-white rounded">
+      Upload & View in KLayout Web
+    </button>
+  </form>
+</div>
+
+<div id="viewArea" class="mt-8 hidden">
+  <iframe id="klayoutFrame"
+          src="https://www.klayout.org/klayout-web/"
+          class="w-full h-[700px] rounded-xl shadow">
+  </iframe>
+</div>
+
+<script>
+document.getElementById("gdsForm").addEventListener("submit", (evt) => {
+  evt.preventDefault();
+  document.getElementById("viewArea").classList.remove("hidden");
+  document.getElementById("klayoutFrame").scrollIntoView({ behavior: "smooth" });
+});
+</script>
+
+{% endblock %}

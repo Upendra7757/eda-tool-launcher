@@ -1,0 +1,195 @@
+{% extends "launcher/base.html" %}
+{% block content %}
+
+<style>
+/* Same background as Verilator */
+body {
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  background-size: 400% 400%;
+  animation: gradientShift 16s ease infinite;
+}
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Glass card */
+.app-card {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 20px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.28);
+}
+
+.btn-primary {
+  background: linear-gradient(90deg,#4f46e5,#6366f1,#818cf8);
+  color: white;
+  transition: 0.25s;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 35px rgba(99,102,241,0.45); }
+
+.btn-secondary {
+  background: linear-gradient(90deg,#0ea5e9,#0284c7,#0369a1);
+  color: white;
+  transition: 0.25s;
+}
+.btn-secondary:hover { transform: translateY(-2px); box-shadow: 0 8px 35px rgba(14,165,233,0.45); }
+
+.text-title { color: #f3f4f6; }
+.text-subtitle { color: #e5e7eb; }
+
+pre { background: rgba(0,0,0,0.6) !important; }
+</style>
+
+
+<!-- ========================================================= -->
+<!-- HEADER -->
+<!-- ========================================================= -->
+<div class="mb-10">
+  <h1 class="text-4xl font-extrabold text-title tracking-tight">{{ tool.name }}</h1>
+  <p class="text-subtitle text-lg mt-2">{{ tool.description }}</p>
+</div>
+
+
+<!-- ========================================================= -->
+<!-- TWO PANEL GRID -->
+<!-- ========================================================= -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+
+
+  <!-- LEFT PANEL — LAUNCH SECTION -->
+  <div class="app-card p-10 text-white">
+
+    <h2 class="text-2xl font-semibold mb-6">Launch Tool</h2>
+
+    <div class="space-y-6">
+
+      <!-- Desktop -->
+      <button onclick="launchDesktop()"
+        class="btn-primary w-full py-3 text-lg rounded-xl font-medium">
+        Launch Desktop Application
+      </button>
+
+      {% if not tool.windows_executable_path and not tool.linux_executable_path %}
+      <p class="text-red-300 text-sm">Desktop executable not configured.</p>
+      {% endif %}
+
+      <!-- Web -->
+      <button onclick="launchWeb()"
+        class="btn-secondary w-full py-3 text-lg rounded-xl font-medium">
+        Launch Web Workspace
+      </button>
+
+      <div id="launchStatus" class="text-sm text-gray-300 mt-3"></div>
+
+    </div>
+
+    <hr class="my-8 border-gray-400/30">
+
+    <!-- TOOL METADATA -->
+    <h3 class="text-xl font-semibold mb-4 text-white">Tool Details</h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-100">
+
+      <div class="bg-white/10 p-3 rounded-lg">
+        <strong>Tool Type:</strong> {{ tool.tool_type }}
+      </div>
+
+      <div class="bg-white/10 p-3 rounded-lg">
+        <strong>Windows Exec:</strong><br>{{ tool.windows_executable_path|default:"-" }}
+      </div>
+
+      <div class="bg-white/10 p-3 rounded-lg">
+        <strong>Linux Exec:</strong><br>{{ tool.linux_executable_path|default:"-" }}
+      </div>
+
+      <div class="bg-white/10 p-3 rounded-lg">
+        <strong>Web Workspace:</strong><br>
+        {% if tool.slug == "verilator" %}
+          Verilator Simulation
+        {% elif tool.slug == "klayout" %}
+          KLayout GDS Viewer
+        {% else %}
+          Browser Workspace
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+
+
+
+  <!-- ========================================================= -->
+  <!-- RIGHT PANEL — PREVIEW / ABOUT -->
+  <!-- ========================================================= -->
+  <div class="app-card p-10 text-white">
+
+    {% if tool.slug == "verilator" %}
+    <h2 class="text-xl font-semibold mb-4">Verilator Simulation Workspace</h2>
+    <p class="text-gray-200 leading-relaxed">
+      Upload your Verilog/SystemVerilog file and run a fast Verilator simulation.
+    </p>
+
+    {% elif tool.slug == "klayout" %}
+    <h2 class="text-xl font-semibold mb-4">KLayout Web GDS Viewer</h2>
+    <p class="text-gray-200 leading-relaxed">
+      Upload GDSII files and preview them in-browser using the server-rendered KLayout viewer.
+      Supports fast PNG rendering for quick inspection.
+    </p>
+
+    {% else %}
+    <h2 class="text-xl font-semibold mb-4">About {{ tool.name }}</h2>
+    <p class="text-gray-200 leading-relaxed">
+      This EDA tool integrates with the launcher and supports Desktop + Web execution.
+    </p>
+    {% endif %}
+
+    <ul class="list-disc ml-6 mt-4 text-gray-200 space-y-1">
+      <li>Desktop Mode launches the installed tool locally</li>
+      <li>Web Mode opens an integrated browser workspace</li>
+      <li>Environment variables and templates supported</li>
+    </ul>
+
+  </div>
+
+</div>
+
+
+
+
+<!-- ========================================================= -->
+<!-- JAVASCRIPT -->
+<!-- ========================================================= -->
+<script>
+function launchDesktop() {
+    document.getElementById("launchStatus").innerText = "Launching desktop...";
+    fetch("/launch-desktop/{{ tool.slug }}/", {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+    })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById("launchStatus").innerText =
+            data.ok ? data.message : ("Error: " + data.error);
+    });
+}
+
+function launchWeb() {
+    document.getElementById("launchStatus").innerText = "Opening web workspace...";
+    fetch("/launch-web/{{ tool.slug }}/", {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok && data.url) window.location.href = data.url;
+        else alert("Error: " + data.error);
+    });
+}
+</script>
+
+{% endblock %}

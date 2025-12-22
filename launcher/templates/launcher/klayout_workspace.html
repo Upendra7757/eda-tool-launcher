@@ -1,0 +1,87 @@
+{% extends "launcher/base.html" %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto">
+
+  <!-- ================= BACK NAVIGATION ================= -->
+  <div class="mb-6">
+    <a href="{% url 'launcher-category' 'custom-layout' %}"
+       class="inline-flex items-center gap-2 text-sm text-sub hover:underline">
+      ← Back to Tools
+    </a>
+  </div>
+
+  <!-- ================= MAIN CARD ================= -->
+  <div class="glass p-8 rounded-2xl shadow-lg">
+
+    <h1 class="text-3xl font-bold mb-2 text-title">
+      KLayout Web Workspace
+    </h1>
+
+    <p class="text-sub mb-6">
+      Upload a GDS file and open it in native KLayout
+    </p>
+
+    <!-- ================= FILE INPUT ================= -->
+    <input type="file"
+           id="gdsFile"
+           accept=".gds,.gdsii"
+           class="mb-4 block">
+
+    <button onclick="uploadGDS()" class="btn-primary">
+      Upload GDS
+    </button>
+
+    <div id="status" class="mt-4 text-sm text-sub"></div>
+
+    <!-- ================= OPEN DESKTOP ================= -->
+    <button id="openBtn"
+            class="btn-secondary mt-6 hidden"
+            onclick="openDesktop()">
+      Open in Desktop KLayout
+    </button>
+
+  </div>
+</div>
+
+<script>
+let uploadedPath = null;
+
+function uploadGDS() {
+  const fileInput = document.getElementById("gdsFile");
+  const status = document.getElementById("status");
+
+  if (!fileInput.files.length) {
+    alert("Please select a GDS file");
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append("file", fileInput.files[0]);
+
+  status.innerText = "Uploading GDS file...";
+
+  fetch("/klayout-run/", { method: "POST", body: fd })
+    .then(r => r.json())
+    .then(d => {
+      if (!d.ok) {
+        status.innerText = d.error;
+        return;
+      }
+      uploadedPath = d.gds;
+      status.innerText = d.message;
+      document.getElementById("openBtn").classList.remove("hidden");
+    })
+    .catch(err => {
+      status.innerText = "Error: " + err;
+    });
+}
+
+function openDesktop() {
+  fetch("/launch-desktop/klayout/", { method: "POST" })
+    .then(r => r.json())
+    .then(d => alert(d.message || d.error));
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EDA Tool Launcher</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- ========================================================= -->
+  <!-- GLOBAL THEME VARIABLES -->
+  <!-- ========================================================= -->
+  <style>
+    :root {
+      --bg-main: #f7f8fa;
+      --bg-glass: rgba(255,255,255,0.75);
+      --text-main: #111827;
+      --text-sub: #6b7280;
+      --border-soft: rgba(0,0,0,0.1);
+    }
+
+    [data-theme="dark"] {
+      --bg-main: linear-gradient(135deg,#0f172a,#1e1b4b,#312e81);
+      --bg-glass: rgba(255,255,255,0.14);
+      --text-main: #f3f4f6;
+      --text-sub: #d1d5db;
+      --border-soft: rgba(255,255,255,0.25);
+    }
+
+    body {
+      background: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      transition: background .3s ease;
+    }
+
+    /* Glass */
+    .glass {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-soft);
+      backdrop-filter: blur(14px);
+      border-radius: 18px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.25);
+    }
+
+    /* Sidebar */
+    .sidebar { width: 270px; }
+
+    .nav-title {
+      margin-top: 18px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      color: var(--text-sub);
+      text-transform: uppercase;
+    }
+
+    .nav-item {
+      padding: 10px 14px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background .2s ease;
+    }
+
+    .nav-item:hover {
+      background: rgba(255,255,255,.15);
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background: linear-gradient(90deg,#5b21b6,#7c3aed,#8b5cf6);
+      color: white;
+      border-radius: 12px;
+      padding: 8px 18px;
+      transition: .25s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(124,58,237,.45);
+    }
+
+    .text-sub { color: var(--text-sub); }
+  </style>
+</head>
+
+<body>
+
+<div class="flex min-h-screen">
+
+  <!-- ========================================================= -->
+  <!-- LEFT SIDEBAR -->
+  <!-- ========================================================= -->
+  <aside class="sidebar glass p-5">
+
+    <div class="mb-6">
+      <h1 class="text-xl font-bold">EDA Launcher</h1>
+      <p class="text-xs text-sub">Unified EDA Workspace</p>
+    </div>
+
+    <nav>
+
+      <!-- CORE -->
+      <div class="nav-title">Core</div>
+      <a href="/" class="nav-item">🏠 Dashboard</a>
+
+      <!-- SIMULATION -->
+      <div class="nav-title">Simulation</div>
+      <a href="/category/simulation/" class="nav-item">
+        <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" stroke-width="1.8"
+             viewBox="0 0 24 24">
+          <path d="M3 12h4l2-6 4 12 2-6h4"/>
+        </svg>
+        RTL / Simulation
+      </a>
+
+      <!-- LAYOUT -->
+      <div class="nav-title">Layout</div>
+      <a href="/category/custom-layout/" class="nav-item">
+        <svg class="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" stroke-width="1.8"
+             viewBox="0 0 24 24">
+          <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/>
+        </svg>
+        Custom Layout
+      </a>
+
+      <!-- ANALOG -->
+      <div class="nav-title">Analog</div>
+      <div class="nav-item">
+        <svg class="w-5 h-5 text-sky-300" fill="none" stroke="currentColor" stroke-width="1.8"
+             viewBox="0 0 24 24">
+          <path d="M4 19V5M10 19V9M16 19V3M22 19H2"/>
+        </svg>
+        Analog Tools
+      </div>
+
+      <!-- LOGS & RESULTS -->
+      <div class="nav-title">Logs & Results</div>
+
+      <a href="/logs/simulation/" class="nav-item">
+        📄 Simulation Logs
+      </a>
+
+      <a href="/logs/layout/" class="nav-item">
+        🧩 Layout Logs
+      </a>
+
+      <a href="/logs/runs/" class="nav-item">
+        🕘 Run History
+      </a>
+
+      <a href="/logs/errors/" class="nav-item">
+        🚨 Error Reports
+      </a>
+
+      <!-- WORKSPACE -->
+      <div class="nav-title">Workspace</div>
+      <div class="nav-item">📁 Files</div>
+      <div class="nav-item">🧭 Navigator</div>
+      <div class="nav-item">📚 Library</div>
+
+      <!-- SUPPORT -->
+      <div class="nav-title">Support</div>
+      <div class="nav-item">❓ Help</div>
+      <div class="nav-item">📘 Learn More</div>
+      <div class="nav-item">🛠 Need Support</div>
+
+    </nav>
+  </aside>
+
+  <!-- ========================================================= -->
+  <!-- MAIN CONTENT -->
+  <!-- ========================================================= -->
+  <main class="flex-1 px-8 py-8">
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center mb-10">
+      <div>
+        <h2 class="text-2xl font-bold">EDA Tool Launcher</h2>
+        <p class="text-sm text-sub">
+          Simulation · Layout · Verification · Logs
+        </p>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <button id="themeToggle"
+                class="px-4 py-2 rounded-lg bg-white/70 text-gray-900 text-sm">
+          ☀ Light
+        </button>
+
+        <div class="text-sm text-sub">
+          User:
+          <strong>{{ request.user.username|default:"demo" }}</strong>
+        </div>
+      </div>
+    </div>
+
+    {% block content %}{% endblock %}
+
+  </main>
+</div>
+
+<!-- ========================================================= -->
+<!-- THEME TOGGLE -->
+<!-- ========================================================= -->
+<script>
+  const toggleBtn = document.getElementById("themeToggle");
+  const root = document.documentElement;
+
+  const saved = localStorage.getItem("eda-theme");
+  if (saved) {
+    root.setAttribute("data-theme", saved);
+    toggleBtn.innerText = saved === "dark" ? "☀ Light" : "🌙 Dark";
+  }
+
+  toggleBtn.onclick = () => {
+    const cur = root.getAttribute("data-theme");
+    const next = cur === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    localStorage.setItem("eda-theme", next);
+    toggleBtn.innerText = next === "dark" ? "☀ Light" : "🌙 Dark";
+  };
+</script>
+
+</body>
+</html>

@@ -1,0 +1,87 @@
+{% extends "launcher/base.html" %}
+{% block content %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+
+{% for category in categories %}
+<a href="{% url 'launcher-category' category.slug %}"
+   class="app-card p-6 transition hover:scale-[1.02] hover:shadow-2xl">
+
+  <div class="flex items-center gap-5">
+
+    <!-- ================= ICON ================= -->
+    <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center border border-white/30">
+
+      {% if category.slug == "analog-ip" %}
+      <!-- Analog / Waveform -->
+      <svg class="w-8 h-8 text-indigo-300" fill="none" stroke="currentColor" stroke-width="2"
+           viewBox="0 0 24 24">
+        <path d="M2 12c2-4 4 4 6 0s4 4 6 0 4 4 8 0"/>
+      </svg>
+
+      {% elif category.slug == "custom-layout" %}
+      <!-- Layout Grid -->
+      <svg class="w-8 h-8 text-purple-300" fill="none" stroke="currentColor" stroke-width="1.8"
+           viewBox="0 0 24 24">
+        <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/>
+      </svg>
+
+      {% elif category.slug == "physical-design" %}
+      <!-- Chip Blocks -->
+      <svg class="w-8 h-8 text-teal-300" fill="none" stroke="currentColor" stroke-width="1.8"
+           viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+      </svg>
+
+      {% elif category.slug == "simulation-rtl-verification" %}
+      <!-- Simulation -->
+      <svg class="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" stroke-width="2"
+           viewBox="0 0 24 24">
+        <path d="M3 12h6l3-6 3 12 3-6h3"/>
+      </svg>
+
+      {% elif category.slug == "memory-ip" %}
+      <!-- Memory -->
+      <svg class="w-8 h-8 text-green-300" fill="none" stroke="currentColor" stroke-width="1.8"
+           viewBox="0 0 24 24">
+        <rect x="4" y="3" width="16" height="18"/>
+        <path d="M8 7h8M8 11h8M8 15h8"/>
+      </svg>
+
+      {% elif category.slug == "std-cell-library" %}
+      <!-- Standard Cells -->
+      <svg class="w-8 h-8 text-yellow-300" fill="none" stroke="currentColor" stroke-width="1.8"
+           viewBox="0 0 24 24">
+        <path d="M3 7h18M3 12h18M3 17h18"/>
+      </svg>
+
+      {% else %}
+      <!-- Default -->
+      <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.8"
+           viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"/>
+      </svg>
+      {% endif %}
+
+    </div>
+
+    <!-- ================= TEXT ================= -->
+    <div>
+      <h2 class="text-xl font-semibold text-title">
+        {{ category.name }}
+      </h2>
+      <p class="text-sub text-sm mt-1">
+        Explore tools in this category
+      </p>
+    </div>
+
+  </div>
+
+</a>
+{% endfor %}
+
+</div>
+
+{% endblock %}
