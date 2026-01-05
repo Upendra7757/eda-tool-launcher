@@ -8,10 +8,14 @@ from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse, HttpResponse, FileResponse
 from django.views.decorators.csrf import csrf_exempt
+from .services import execute_tool_run
+from .models import ToolRun, Tool
+from django.utils import timezone
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import viewsets
+from launcher.models import ToolRun
 
 from .models import Category, Tool
 from .serializers import ToolSerializer
@@ -36,7 +40,7 @@ def home(request):
         "categories": categories
     })
 
-
+"""
 def category_page(request, slug):
     category = get_object_or_404(Category, slug=slug)
     tools = category.tools.filter(visible=True).order_by("name")
@@ -44,7 +48,17 @@ def category_page(request, slug):
         "category": category,
         "tools": tools
     })
+"""
 
+def category_page(request, slug):
+    category = get_object_or_404(Category, slug=slug)
+    tools = category.tools.filter(visible=True).order_by("name")
+
+    return render(request, "launcher/category.html", {
+        "category": category,
+        "tools": tools,
+        "active_category": category.slug,   # ⭐ KEY LINE
+    })
 
 def tool_page(request, slug):
     """
@@ -84,6 +98,8 @@ def tool_page(request, slug):
         "tool": tool,
         "envs": tool.envs.all()
     })
+
+
 
 
 # =====================================================
@@ -148,7 +164,7 @@ def patch_sim_main(path, module_name):
 # =====================================================
 # VERILATOR COMPILE + RUN (WSL)
 # =====================================================
-
+"""
 @csrf_exempt
 def launch_tool(request):
     if request.method != "POST":
@@ -215,12 +231,13 @@ def launch_tool(request):
         "stderr": compile_err + sim_err,
         "vcd": vcd
     })
+"""
 
 
 # =====================================================
 # UPLOAD WRAPPER (VERILATOR)
 # =====================================================
-
+"""
 @api_view(["POST"])
 def run_tool(request, slug):
     tool = get_object_or_404(Tool, slug=slug)
@@ -242,60 +259,12 @@ def run_tool(request, slug):
 
     resp = launch_tool(dummy)
     return JsonResponse(resp.data)
+"""
 
 
 # =====================================================
 # DESKTOP LAUNCH (WSL SAFE)
 # =====================================================
-"""
-@csrf_exempt
-def launch_desktop(request, slug):
-    if request.method != "POST":
-        return JsonResponse(
-            {"ok": False, "error": "POST required"},
-            status=400
-        )
-
-    tool = get_object_or_404(Tool, slug=slug)
-
-    # Prefer Linux executable (WSL GUI tools)
-    exe = tool.linux_executable_path or tool.windows_executable_path
-
-    if not exe:
-        return JsonResponse(
-            {"ok": False, "error": "Executable path not configured"},
-            status=400
-        )
-
-    # --------------------------------------------------
-    # Tool-specific launch flags
-    # --------------------------------------------------
-    if tool.slug == "klayout":
-        # Start KLayout in EDITOR MODE
-        cmd = f"{exe} -e"
-    else:
-        # Default launch
-        cmd = exe
-
-    try:
-        subprocess.Popen(
-            ["wsl", "bash", "-lc", cmd],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True
-        )
-
-        return JsonResponse({
-            "ok": True,
-            "message": f"{tool.name} launched successfully"
-        })
-
-    except Exception as e:
-        return JsonResponse(
-            {"ok": False, "error": str(e)},
-            status=500
-        )
-"""
 
 
 # =====================================================
@@ -324,7 +293,7 @@ def launch_web(request, slug):
         "error": "This tool has no Web Mode"
     })
 """
-
+"""
 @csrf_exempt
 def klayout_run(request):
     if request.method != "POST":
@@ -357,7 +326,7 @@ def klayout_run(request):
         "ok": True,
         "message": "KLayout opened with GDS file"
     })
-
+"""
 
 @csrf_exempt
 def launch_web(request, slug):
@@ -383,34 +352,7 @@ def launch_web(request, slug):
         "error": "This tool does not support Web Mode"
     }, status=400)
 
-"""
 
-@csrf_exempt
-def klayout_run(request):
-    if request.method != "POST":
-        return JsonResponse({"ok": False, "error": "POST required"}, status=400)
-
-    upload = request.FILES.get("file")
-    if not upload:
-        return JsonResponse({"ok": False, "error": "No GDS uploaded"}, status=400)
-
-    base = settings.BASE_DIR
-    upload_dir = os.path.join(base, "uploads", "klayout")
-    os.makedirs(upload_dir, exist_ok=True)
-
-    filename = f"{uuid.uuid4().hex}_{upload.name}"
-    full_path = os.path.join(upload_dir, filename)
-
-    with open(full_path, "wb") as f:
-        for chunk in upload.chunks():
-            f.write(chunk)
-
-    return JsonResponse({
-        "ok": True,
-        "message": "GDS uploaded successfully",
-        "path": full_path
-    })
-"""
 
 @csrf_exempt
 def launch_web(request, slug):
@@ -431,35 +373,7 @@ def launch_web(request, slug):
 
     return JsonResponse({"ok": False, "error": "No web mode"}, status=400)
 
-"""
-@csrf_exempt
-def launch_desktop(request, slug):
-    if request.method != "POST":
-        return JsonResponse({"ok": False, "error": "POST required"}, status=400)
 
-    tool = get_object_or_404(Tool, slug=slug)
-
-    exe = tool.linux_executable_path
-    gds = request.POST.get("gds")
-
-    if not exe:
-        return JsonResponse({"ok": False, "error": "Linux executable not set"}, status=400)
-
-    if gds:
-        wsl_path = "/mnt/c" + gds.replace("C:", "").replace("\\", "/")
-        cmd = f"{exe} {wsl_path}"
-    else:
-        cmd = exe
-
-    subprocess.Popen(
-        ["wsl", "bash", "-lc", cmd],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    )
-
-    return JsonResponse({"ok": True, "message": "KLayout launched"})
-
-"""
 
 @csrf_exempt
 def launch_desktop(request, slug):
@@ -508,3 +422,416 @@ def launch_desktop(request, slug):
             {"ok": False, "error": str(e)},
             status=500
         )
+    
+"""
+from django.utils import timezone
+from .models import ToolRun
+
+@csrf_exempt
+def launch_tool(request):
+
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=400)
+
+    tool = get_object_or_404(Tool, slug="verilator")
+
+    try:
+        # Run actual simulation here
+        stdout = "simulation output"
+        stderr = ""
+
+        run = execute_tool_run(
+            tool=tool,
+            user=request.user if request.user.is_authenticated else None,
+            input_file=request.FILES.get("file").name if request.FILES else None,
+            stdout=stdout,
+            stderr=stderr,
+            status="success"
+        )
+
+        return JsonResponse({
+            "ok": True,
+            "run_id": run.id,
+            "stdout": stdout,
+            "stderr": stderr
+        })
+
+    except Exception as e:
+        run = execute_tool_run(
+            tool=tool,
+            user=request.user if request.user.is_authenticated else None,
+            status="failed",
+            stderr=str(e)
+        )
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
+"""
+from .models import ToolRun
+
+"""
+@csrf_exempt
+def klayout_run(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=400)
+
+    upload = request.FILES.get("file")
+    if not upload:
+        return JsonResponse({"ok": False, "error": "No GDS uploaded"}, status=400)
+
+    tool = get_object_or_404(Tool, slug="klayout")
+
+    run = ToolRun.objects.create(
+        tool=tool,
+        user=request.user if request.user.is_authenticated else None,
+        input_file=upload.name,
+        status="running"
+    )
+
+    try:
+        base = settings.BASE_DIR
+        upload_dir = os.path.join(base, "uploads", "klayout")
+        os.makedirs(upload_dir, exist_ok=True)
+
+        filename = f"{uuid.uuid4().hex}_{upload.name}"
+        full_path = os.path.join(upload_dir, filename)
+
+        with open(full_path, "wb") as f:
+            for chunk in upload.chunks():
+                f.write(chunk)
+
+        run.status = "success"
+        run.completed_at = timezone.now()
+        run.save()
+
+        return JsonResponse({
+            "ok": True,
+            "run_id": run.id,
+            "message": "GDS uploaded successfully",
+            "path": full_path
+        })
+
+    except Exception as e:
+        run.status = "failed"
+        run.stderr = str(e)
+        run.completed_at = timezone.now()
+        run.save()
+
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)
+"""
+"""
+@csrf_exempt
+def klayout_run(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=400)
+
+    upload = request.FILES.get("file")
+    if not upload:
+        return JsonResponse({"ok": False, "error": "No GDS uploaded"}, status=400)
+
+    upload_dir = os.path.join(settings.BASE_DIR, "uploads", "klayout")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    filename = f"{uuid.uuid4().hex}_{upload.name}"
+    full_path = os.path.join(upload_dir, filename)
+
+    with open(full_path, "wb") as f:
+        for chunk in upload.chunks():
+            f.write(chunk)
+
+    # Convert Windows path → WSL path
+    wsl_path = "/mnt/c" + full_path.replace("C:", "").replace("\\", "/")
+
+    # IMPORTANT: -e = Editor mode
+    subprocess.Popen(
+        ["wsl", "bash", "-lc", f"klayout -e '{wsl_path}'"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+
+    return JsonResponse({
+        "ok": True,
+        "message": "GDS opened in KLayout editor",
+    })
+"""
+def view_run_logs(request, run_id):
+    run = get_object_or_404(ToolRun, id=run_id)
+
+    return render(
+        request,
+        "launcher/run_detail.html",   # ✅ matches your folder
+        {
+            "run": run
+        }
+    )
+
+from django.utils import timezone
+from .models import ToolRun, LayoutMetadata
+
+@csrf_exempt
+def klayout_run(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=400)
+
+    upload = request.FILES.get("file")
+    if not upload:
+        return JsonResponse({"ok": False, "error": "No GDS uploaded"}, status=400)
+
+    run_dir = os.path.join(settings.BASE_DIR, "runs", uuid.uuid4().hex)
+    os.makedirs(run_dir, exist_ok=True)
+
+    gds_path = os.path.join(run_dir, upload.name)
+    with open(gds_path, "wb") as f:
+        for chunk in upload.chunks():
+            f.write(chunk)
+
+    run = ToolRun.objects.create(
+        tool=Tool.objects.get(slug="klayout"),
+        user=request.user if request.user.is_authenticated else None,
+        input_file=upload.name,
+        run_dir=run_dir,
+        status="running",
+    )
+
+    wsl_gds = "/mnt/c" + gds_path.replace("C:", "").replace("\\", "/")
+    wsl_run = "/mnt/c" + run_dir.replace("C:", "").replace("\\", "/")
+
+    subprocess.Popen([
+        "wsl", "bash", "-lc",
+        f"klayout -e '{wsl_gds}' && "
+        f"klayout -b -r scripts/klayout_extract.py '{wsl_gds}' '{wsl_run}'"
+    ])
+
+    return JsonResponse({
+        "ok": True,
+        "run_id": run.id,
+        "message": "Opened in KLayout + metadata generation started"
+    })
+
+
+
+# launcher/views.py
+"""
+@api_view(["POST"])
+def run_tool(request, slug):
+    tool = get_object_or_404(Tool, slug=slug)
+
+    upload = request.FILES.get("file")
+    if not upload:
+        return JsonResponse({"ok": False, "error": "No file uploaded"}, status=400)
+
+    uploads_dir = os.path.join(settings.BASE_DIR, "uploads")
+    os.makedirs(uploads_dir, exist_ok=True)
+
+    filename = f"{uuid.uuid4().hex}_{upload.name}"
+    full_path = os.path.join(uploads_dir, filename)
+
+    with open(full_path, "wb") as f:
+        for chunk in upload.chunks():
+            f.write(chunk)
+
+    try:
+        result = execute_tool_run(
+            tool=tool,
+            user=request.user if request.user.is_authenticated else None,
+            upload_filename=filename,
+        )
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
+    return JsonResponse({
+        "ok": True,
+        **result
+    })
+"""
+
+def logs_page(request):
+    runs = ToolRun.objects.order_by("-created_at")[:50]
+    return render(request, "launcher/logs.html", {"runs": runs})
+
+def logs_home(request):
+    """
+    Landing page for logs.
+    """
+    recent_runs = ToolRun.objects.order_by("-created_at")[:20]
+
+    return render(request, "launcher/logs_home.html", {
+        "recent_runs": recent_runs
+    })
+
+
+def logs_by_scope(request, scope):
+    """
+    Logs filtered by scope:
+    simulation | layout | runs | errors
+    """
+
+    qs = ToolRun.objects.order_by("-created_at")
+
+    if scope == "simulation":
+        qs = qs.filter(tool__slug="verilator")
+
+    elif scope == "layout":
+        qs = qs.filter(tool__slug="klayout")
+
+    elif scope == "errors":
+        qs = qs.filter(status="failed")
+
+    elif scope == "runs":
+        pass  # all runs
+
+    else:
+        return HttpResponse("Invalid log scope", status=404)
+
+    return render(request, "launcher/logs_list.html", {
+        "scope": scope,
+        "runs": qs[:50]
+    })
+
+import subprocess
+
+def run_bash(command, cwd=None, timeout=300):
+    """
+    Execute a shell command and return (stdout, stderr)
+    """
+    proc = subprocess.Popen(
+        command,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=cwd,
+        text=True
+    )
+
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        stdout, stderr = proc.communicate()
+        stderr += "\n[ERROR] Command timed out"
+
+    return stdout, stderr
+
+def windows_to_wsl(path):
+    path = path.replace("\\", "/")
+    if path[1:3] == ":/":
+        drive = path[0].lower()
+        return f"/mnt/{drive}{path[2:]}"
+    return path
+
+
+
+from django.utils import timezone
+
+def execute_verilator_run(*, tool, user, upload_path):
+    from django.utils import timezone
+    import os
+
+    run = ToolRun.objects.create(
+        tool=tool,
+        user=user,
+        input_file=os.path.basename(upload_path),
+        status="running"
+    )
+
+    try:
+        wsl_file = windows_to_wsl(upload_path)
+
+        cmd = f"verilator --lint-only {wsl_file}"
+
+        stdout, stderr = run_bash(
+            f"wsl bash -lc '{cmd}'"
+        )
+
+        run.stdout = stdout
+        run.stderr = stderr
+        run.status = "success" if not stderr else "failed"
+
+    except Exception as e:
+        run.stderr = str(e)
+        run.status = "failed"
+
+    run.completed_at = timezone.now()
+    run.save()
+
+    return run
+
+
+@api_view(["POST"])
+def run_tool(request, slug):
+    tool = get_object_or_404(Tool, slug=slug)
+    upload = request.FILES.get("file")
+
+    if not upload:
+        return Response({"ok": False, "error": "No file uploaded"}, status=400)
+
+    uploads_dir = os.path.join(settings.BASE_DIR, "uploads")
+    os.makedirs(uploads_dir, exist_ok=True)
+
+    filename = f"{uuid.uuid4().hex}_{upload.name}"
+    full_path = os.path.join(uploads_dir, filename)
+
+    with open(full_path, "wb") as f:
+        for chunk in upload.chunks():
+            f.write(chunk)
+
+    run = execute_verilator_run(
+        tool=tool,
+        user=request.user if request.user.is_authenticated else None,
+        upload_path=full_path
+    )
+
+    return Response({
+        "ok": run.status == "success",
+        "run_id": run.id,
+        "stdout": run.stdout,
+        "stderr": run.stderr,
+        "status": run.status
+    })
+def view_run_logs(request, run_id):
+    run = get_object_or_404(ToolRun, id=run_id)
+
+    return render(
+        request,
+        "launcher/run_detail.html",   # ✅ CORRECT PATH
+        {"run": run}
+    )
+"""
+def view_run_logs(request, run_id):
+    run = get_object_or_404(
+        ToolRun.objects.select_related("tool", "user"),
+        id=run_id
+    )
+
+    return render(request, "launcher/logs/run_detail.html", {
+        "run": run
+    })
+"""
+def download_run_logs(request, run_id):
+    run = get_object_or_404(ToolRun, id=run_id)
+
+    content = f"""
+========================================
+EDA TOOL RUN LOG
+========================================
+
+Tool      : {run.tool.name}
+Status    : {run.status}
+Started   : {run.created_at}
+Completed : {run.completed_at or "Running"}
+
+----------------------------------------
+STDOUT
+----------------------------------------
+{run.stdout or "No STDOUT"}
+
+----------------------------------------
+STDERR
+----------------------------------------
+{run.stderr or "No STDERR"}
+"""
+
+    response = HttpResponse(content, content_type="text/plain")
+    response["Content-Disposition"] = (
+        f'attachment; filename="{run.tool.slug}_run_{run.id}.log"'
+    )
+    return response

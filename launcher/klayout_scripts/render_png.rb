@@ -1,9 +1,6 @@
-layout = RBA::Layout.new
-layout.read(ARGV[0])
+import pya, sys
 
-view = RBA::LayoutView.new
-view.load_layout(layout)
-view.max_hier()
-
-img = view.get_image(1200, 1200)
-img.save("preview.png")
+app = pya.Application.instance()
+mw = app.main_window()
+mw.load_layout(sys.argv[1], 0)
+mw.save_image(sys.argv[2], 800, 800)

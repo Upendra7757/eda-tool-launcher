@@ -1,0 +1,27 @@
+{% extends "launcher/base.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-6">Logs & Run History</h1>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  <a href="/logs/simulation/" class="app-card p-4 text-center">Simulation</a>
+  <a href="/logs/layout/" class="app-card p-4 text-center">Layout</a>
+  <a href="/logs/runs/" class="app-card p-4 text-center">All Runs</a>
+  <a href="/logs/errors/" class="app-card p-4 text-center">Errors</a>
+</div>
+
+<h2 class="text-xl font-semibold mb-3">Recent Runs</h2>
+
+<ul class="space-y-2">
+  {% for run in recent_runs %}
+    <li class="app-card p-3">
+      <strong>{{ run.tool.name }}</strong> —
+      {{ run.status }} —
+      {{ run.created_at }}
+    </li>
+  {% empty %}
+    <li>No runs yet.</li>
+  {% endfor %}
+</ul>
+
+{% endblock %}

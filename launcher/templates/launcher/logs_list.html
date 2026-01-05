@@ -1,0 +1,88 @@
+{% extends "launcher/base.html" %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto">
+
+  <!-- ================= HEADER ================= -->
+  <div class="mb-8">
+    <a href="{% url 'logs-home' %}"
+       class="text-sm text-blue-400 hover:underline">
+      ← Back to Logs
+    </a>
+
+    <h1 class="text-3xl font-bold mt-3">Simulation Logs</h1>
+    <p class="text-sub mt-1">
+      Verilator simulation runs with execution status and logs
+    </p>
+  </div>
+
+  <!-- ================= LOG LIST ================= -->
+  <div class="space-y-5">
+
+    {% for run in runs %}
+    <div class="glass p-6 rounded-2xl flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+
+      <!-- ===== LEFT: RUN DETAILS ===== -->
+      <div>
+        <div class="text-lg font-semibold">
+          {{ run.tool.name }}
+        </div>
+
+        <div class="text-sm text-sub mt-1">
+          {{ run.created_at|date:"M d, Y · h:i A" }}
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="flex flex-wrap items-center gap-4 mt-4">
+
+          <a href="{% url 'view-run-logs' run.id %}"
+             class="text-sm text-blue-400 hover:underline">
+            ▶ View Logs
+          </a>
+
+          <a href="{% url 'download-run-logs' run.id %}"
+             class="btn-secondary text-sm">
+            📥 Download Logs
+          </a>
+
+        </div>
+      </div>
+
+      <!-- ===== RIGHT: STATUS ===== -->
+      <div class="flex flex-col items-end gap-2">
+
+        {% if run.status == "success" %}
+          <span class="px-4 py-1 rounded-full bg-green-600 text-sm font-medium">
+            Success
+          </span>
+        {% elif run.status == "failed" %}
+          <span class="px-4 py-1 rounded-full bg-red-600 text-sm font-medium">
+            Failed
+          </span>
+        {% else %}
+          <span class="px-4 py-1 rounded-full bg-yellow-500 text-sm font-medium">
+            Running
+          </span>
+        {% endif %}
+
+        <span class="text-xs text-sub">
+          {% if run.completed_at %}
+            Updated {{ run.completed_at|timesince }} ago
+          {% else %}
+            Started {{ run.created_at|timesince }} ago
+          {% endif %}
+        </span>
+
+      </div>
+
+    </div>
+    {% empty %}
+      <div class="glass p-8 text-center text-sub rounded-xl">
+        No simulation runs found.
+      </div>
+    {% endfor %}
+
+  </div>
+</div>
+
+{% endblock %}

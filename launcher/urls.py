@@ -47,6 +47,21 @@ urlpatterns = [
     #path("open-cli/<str:workdir>/", views.open_cli, name="open-cli"),
     path("klayout-run/", views.klayout_run, name="klayout-run"),
 
+    path("logs/", views.logs_page, name="launcher-logs"),
+
+    path("logs/", views.logs_home,name="logs-home"),
+
+    path("logs/<str:scope>/", views.logs_by_scope, name="logs-by-scope"),
+
+
+    path("logs/<slug:scope>/",views.logs_by_scope,name="logs-by-scope"),
+
+    path("logs/run/<int:run_id>/",views.view_run_logs,name="view-run-logs"),
+
+    
+    #path("logs/list/<slug:tool_slug>/",views.logs_list,name="logs-list"),
+
+    path("logs/run/<int:run_id>/download/",views.download_run_logs,name="download-run-logs"),
 
 ]
 

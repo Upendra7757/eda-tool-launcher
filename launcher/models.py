@@ -100,3 +100,136 @@ class EnvConfig(models.Model):
 
     def __str__(self):
         return f"{self.tool.name} - {self.name}"
+"""
+class ToolRun(models.Model):
+    STATUS = [
+        ('success', 'Success'),
+        ('failed', 'Failed'),
+        ('running', 'Running'),
+    ]
+
+    tool = models.ForeignKey(
+        Tool,
+        on_delete=models.CASCADE,
+        related_name='runs'
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    input_file = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS,
+        default='running'
+    )
+
+    stdout = models.TextField(blank=True)
+    stderr = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.tool.name} run @ {self.created_at}"
+
+
+# =====================================================
+# PHASE 2 — KLAYOUT METADATA (OPTIONAL, SAFE)
+# =====================================================
+class LayoutMetadata(models.Model):
+    run = models.OneToOneField(
+        ToolRun,
+        on_delete=models.CASCADE,
+        related_name='layout_metadata'
+    )
+
+    cell_count = models.IntegerField(null=True, blank=True)
+    bbox = models.JSONField(null=True, blank=True)
+    layers = models.JSONField(null=True, blank=True)
+    dbu = models.FloatField(null=True, blank=True)
+
+    png_preview = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Path to generated PNG preview"
+    )
+
+    def __str__(self):
+        return f"Layout metadata for run {self.run.id}"
+"""
+class ToolRun(models.Model):
+    STATUS = [
+        ("running", "Running"),
+        ("success", "Success"),
+        ("failed", "Failed"),
+    ]
+
+    tool = models.ForeignKey(
+        Tool,
+        on_delete=models.CASCADE,
+        related_name="runs"
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    input_file = models.CharField(max_length=255, blank=True)
+    run_dir = models.CharField(max_length=500,blank=True,default="")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS,
+        default="running"
+    )
+
+    stdout = models.TextField(blank=True)
+    stderr = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.tool.name} run @ {self.created_at}"
+
+
+# =====================================================
+# KLAYOUT METADATA (PHASE 2)
+# =====================================================
+class LayoutMetadata(models.Model):
+    run = models.OneToOneField(
+        ToolRun,
+        on_delete=models.CASCADE,
+        related_name="layout_metadata"
+    )
+
+    cell_count = models.IntegerField(null=True, blank=True)
+    dbu = models.FloatField(null=True, blank=True)
+
+    bbox = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Layout bounding box"
+    )
+
+    layers = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="List of layers"
+    )
+
+    png_preview = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Path to generated PNG preview"
+    )
+
+    def __str__(self):
+        return f"Layout metadata for run {self.run.id}"

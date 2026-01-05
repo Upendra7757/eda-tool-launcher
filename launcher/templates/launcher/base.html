@@ -1,92 +1,261 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>EDA Tool Launcher</title>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- ========================================================= -->
-  <!-- GLOBAL THEME VARIABLES -->
-  <!-- ========================================================= -->
   <style>
-    :root {
-      --bg-main: #f7f8fa;
-      --bg-glass: rgba(255,255,255,0.75);
-      --text-main: #111827;
-      --text-sub: #6b7280;
-      --border-soft: rgba(0,0,0,0.1);
-    }
+/* =====================================================
+   DARK THEME (DEFAULT)
+===================================================== */
+html[data-theme="dark"] {
+  --bg-main:
+    radial-gradient(1200px circle at 10% 10%, #1e1b4b, transparent 55%),
+    radial-gradient(900px circle at 90% 20%, #312e81, transparent 60%),
+    linear-gradient(180deg, #020617, #020617);
 
-    [data-theme="dark"] {
-      --bg-main: linear-gradient(135deg,#0f172a,#1e1b4b,#312e81);
-      --bg-glass: rgba(255,255,255,0.14);
-      --text-main: #f3f4f6;
-      --text-sub: #d1d5db;
-      --border-soft: rgba(255,255,255,0.25);
-    }
+  --glass-bg: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.14),
+    rgba(255,255,255,0.05)
+  );
+  --glass-border: rgba(255,255,255,0.22);
 
-    body {
-      background: var(--bg-main);
-      color: var(--text-main);
-      min-height: 100vh;
-      transition: background .3s ease;
-    }
+  --text-main: #f8fafc;
+  --text-sub: #c7cad6;
+  --accent: #7c3aed;
+}
 
-    /* Glass */
-    .glass {
-      background: var(--bg-glass);
-      border: 1px solid var(--border-soft);
-      backdrop-filter: blur(14px);
-      border-radius: 18px;
-      box-shadow: 0 12px 40px rgba(0,0,0,.25);
-    }
+/* =====================================================
+   LIGHT THEME
+===================================================== */
+html[data-theme="light"] {
+  --bg-main:
+    radial-gradient(1200px circle at 10% 10%, #e0e7ff, transparent 55%),
+    radial-gradient(900px circle at 90% 20%, #f5d0fe, transparent 60%),
+    linear-gradient(180deg, #f8fafc, #eef2f7);
 
-    /* Sidebar */
-    .sidebar { width: 270px; }
+  --glass-bg: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.85),
+    rgba(255,255,255,0.65)
+  );
+  --glass-border: rgba(15,23,42,0.15);
 
-    .nav-title {
-      margin-top: 18px;
-      margin-bottom: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: .06em;
-      color: var(--text-sub);
-      text-transform: uppercase;
-    }
+  --text-main: #0f172a;
+  --text-sub: #334155;
+  --accent: #7c3aed;
+}
 
-    .nav-item {
-      padding: 10px 14px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: background .2s ease;
-    }
+/* =====================================================
+   GLOBAL BASE
+===================================================== */
+body {
+  background: var(--bg-main);
+  color: var(--text-main);
+  min-height: 100vh;
+  font-family: Inter, ui-sans-serif, system-ui;
+  overflow-x: hidden;
+  transition: filter .35s ease;
+}
 
-    .nav-item:hover {
-      background: rgba(255,255,255,.15);
-    }
+/* =====================================================
+   GLASS SURFACE
+===================================================== */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(22px) saturate(140%);
+  border-radius: 22px;
+  box-shadow:
+    0 30px 90px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.25);
+  transition: all .35s ease;
+}
 
-    /* Buttons */
-    .btn-primary {
-      background: linear-gradient(90deg,#5b21b6,#7c3aed,#8b5cf6);
-      color: white;
-      border-radius: 12px;
-      padding: 8px 18px;
-      transition: .25s;
-    }
+/* =====================================================
+   SIDEBAR (UNCHANGED)
+===================================================== */
+.sidebar { width: 300px; }
 
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(124,58,237,.45);
-    }
+.nav-title {
+  margin: 26px 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
 
-    .text-sub { color: var(--text-sub); }
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 14px;
+  color: var(--text-sub);
+  transition: all .25s ease;
+}
+
+.sidebar-link:hover {
+  color: var(--text-main);
+  transform: translateX(6px);
+}
+
+.sidebar-active {
+  background: linear-gradient(90deg,#5b21b6,#7c3aed);
+  color: white !important;
+  font-weight: 600;
+}
+
+/* =====================================================
+   MAIN CONTENT
+===================================================== */
+.page-title {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* =====================================================
+   BUTTON
+===================================================== */
+.btn-primary {
+  background: linear-gradient(135deg,#5b21b6,#7c3aed,#8b5cf6);
+  border-radius: 14px;
+  padding: 11px 26px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  transition: all .3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 55px rgba(124,58,237,.45);
+}
+
+.text-sub { color: var(--text-sub); }
+
+/* =====================================================
+   WEB MODE SAFETY
+===================================================== */
+main h1, main h2, main h3, .page-title {
+  color: var(--text-main) !important;
+}
+
+/* =====================================================
+   CATEGORY INTERACTION (EXISTING)
+===================================================== */
+.tool-card,
+.app-card {
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    transform .4s cubic-bezier(.22,.61,.36,1),
+    box-shadow .4s ease,
+    filter .4s ease;
+}
+
+.tool-card:hover,
+.app-card:hover {
+  transform: translateY(-8px) scale(1.03);
+  filter: brightness(1.08);
+  box-shadow:
+    0 40px 120px rgba(0,0,0,0.60),
+    0 0 0 1px rgba(124,58,237,0.35);
+}
+
+.tool-card:active,
+.app-card:active {
+  transform: translateY(-4px) scale(0.97);
+}
+
+/* Accent glow (existing) */
+.tool-card::after,
+.app-card::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(124,58,237,0.25), transparent 40%);
+  opacity: 0;
+  transition: opacity .4s ease;
+  pointer-events: none;
+}
+
+.tool-card:hover::after,
+.app-card:hover::after {
+  opacity: 1;
+}
+
+/* =====================================================
+   ✅ NEW ADDITION: ACCENT LINE (IDENTITY & HIERARCHY)
+===================================================== */
+.tool-card::before,
+.app-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  border-radius: 999px;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent),
+    transparent
+  );
+
+  opacity: 0.6;
+  transition: opacity .35s ease, transform .35s ease;
+}
+
+.tool-card:hover::before,
+.app-card:hover::before {
+  opacity: 1;
+  transform: scaleX(1.1);
+}
+
+/* =====================================================
+   CLICK RIPPLE
+===================================================== */
+.card-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: scale(0);
+  background: radial-gradient(
+    circle,
+    rgba(124,58,237,0.45),
+    rgba(124,58,237,0.25),
+    transparent 70%
+  );
+  animation: rippleEffect .6s ease-out;
+}
+
+@keyframes rippleEffect {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* =====================================================
+   BACKGROUND REACTION
+===================================================== */
+body.bg-react {
+  filter: brightness(1.05) saturate(1.15);
+}
+
   </style>
 </head>
 
@@ -94,137 +263,122 @@
 
 <div class="flex min-h-screen">
 
-  <!-- ========================================================= -->
   <!-- LEFT SIDEBAR -->
-  <!-- ========================================================= -->
-  <aside class="sidebar glass p-5">
-
-    <div class="mb-6">
-      <h1 class="text-xl font-bold">EDA Launcher</h1>
-      <p class="text-xs text-sub">Unified EDA Workspace</p>
+  <aside class="sidebar glass p-6">
+    <div class="mb-10">
+      <h1 class="text-xl font-extrabold tracking-tight">EDA Launcher</h1>
+      <p class="text-xs text-sub mt-1">
+        Enterprise Design Automation Platform
+      </p>
     </div>
 
-    <nav>
-
-      <!-- CORE -->
+    <nav class="space-y-1">
       <div class="nav-title">Core</div>
-      <a href="/" class="nav-item">🏠 Dashboard</a>
+      <a href="/" class="sidebar-link">🏠 Dashboard</a>
 
-      <!-- SIMULATION -->
       <div class="nav-title">Simulation</div>
-      <a href="/category/simulation/" class="nav-item">
-        <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" stroke-width="1.8"
-             viewBox="0 0 24 24">
-          <path d="M3 12h4l2-6 4 12 2-6h4"/>
-        </svg>
-        RTL / Simulation
+      <a href="{% url 'launcher-category' 'simulation-rtl' %}"
+         class="sidebar-link {% if active_category == 'simulation-rtl' %}sidebar-active{% endif %}">
+        🧪 RTL / Simulation Verification
       </a>
 
-      <!-- LAYOUT -->
       <div class="nav-title">Layout</div>
-      <a href="/category/custom-layout/" class="nav-item">
-        <svg class="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" stroke-width="1.8"
-             viewBox="0 0 24 24">
-          <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/>
-        </svg>
-        Custom Layout
+      <a href="{% url 'launcher-category' 'custom-layout' %}"
+         class="sidebar-link {% if active_category == 'custom-layout' %}sidebar-active{% endif %}">
+        🧩 Custom Layout
       </a>
 
-      <!-- ANALOG -->
       <div class="nav-title">Analog</div>
-      <div class="nav-item">
-        <svg class="w-5 h-5 text-sky-300" fill="none" stroke="currentColor" stroke-width="1.8"
-             viewBox="0 0 24 24">
-          <path d="M4 19V5M10 19V9M16 19V3M22 19H2"/>
-        </svg>
-        Analog Tools
-      </div>
+      <a href="#" class="sidebar-link">📈 Analog Tools</a>
 
-      <!-- LOGS & RESULTS -->
       <div class="nav-title">Logs & Results</div>
+      <a href="/logs/simulation/" class="sidebar-link">📄 Simulation Logs</a>
+      <a href="/logs/layout/" class="sidebar-link">🧩 Layout Logs</a>
+      <a href="/logs/runs/" class="sidebar-link">🕘 Run History</a>
+      <a href="/logs/errors/" class="sidebar-link">🚨 Error Reports</a>
 
-      <a href="/logs/simulation/" class="nav-item">
-        📄 Simulation Logs
-      </a>
-
-      <a href="/logs/layout/" class="nav-item">
-        🧩 Layout Logs
-      </a>
-
-      <a href="/logs/runs/" class="nav-item">
-        🕘 Run History
-      </a>
-
-      <a href="/logs/errors/" class="nav-item">
-        🚨 Error Reports
-      </a>
-
-      <!-- WORKSPACE -->
       <div class="nav-title">Workspace</div>
-      <div class="nav-item">📁 Files</div>
-      <div class="nav-item">🧭 Navigator</div>
-      <div class="nav-item">📚 Library</div>
+      <a href="#" class="sidebar-link">📁 Files</a>
+      <a href="#" class="sidebar-link">🧭 Navigator</a>
+      <a href="#" class="sidebar-link">📚 Library</a>
 
-      <!-- SUPPORT -->
       <div class="nav-title">Support</div>
-      <div class="nav-item">❓ Help</div>
-      <div class="nav-item">📘 Learn More</div>
-      <div class="nav-item">🛠 Need Support</div>
-
+      <a href="#" class="sidebar-link">❓ Help</a>
+      <a href="#" class="sidebar-link">📘 Learn More</a>
+      <a href="#" class="sidebar-link">🛠 Need Support</a>
     </nav>
   </aside>
 
-  <!-- ========================================================= -->
   <!-- MAIN CONTENT -->
-  <!-- ========================================================= -->
-  <main class="flex-1 px-8 py-8">
-
-    <!-- HEADER -->
-    <div class="flex justify-between items-center mb-10">
+  <main class="flex-1 px-10 py-8">
+    <div class="flex justify-between items-center mb-12">
       <div>
-        <h2 class="text-2xl font-bold">EDA Tool Launcher</h2>
-        <p class="text-sm text-sub">
-          Simulation · Layout · Verification · Logs
+        <div class="page-title">EDA Tool Launcher</div>
+        <p class="text-sub text-sm mt-1">
+          Simulation · Layout · Verification · Analytics
         </p>
       </div>
 
-      <div class="flex items-center gap-4">
-        <button id="themeToggle"
-                class="px-4 py-2 rounded-lg bg-white/70 text-gray-900 text-sm">
-          ☀ Light
-        </button>
-
+      <div class="flex items-center gap-5">
+        <button id="themeToggle" class="btn-primary">☀ Light</button>
         <div class="text-sm text-sub">
-          User:
-          <strong>{{ request.user.username|default:"demo" }}</strong>
+          User: <strong>{{ request.user.username|default:"demo" }}</strong>
         </div>
       </div>
     </div>
 
     {% block content %}{% endblock %}
-
   </main>
 </div>
 
-<!-- ========================================================= -->
-<!-- THEME TOGGLE -->
-<!-- ========================================================= -->
 <script>
-  const toggleBtn = document.getElementById("themeToggle");
+  // Background reaction + ripple
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".tool-card, .app-card").forEach(card => {
+
+      card.addEventListener("mouseenter", () => {
+        document.body.classList.add("bg-react");
+      });
+
+      card.addEventListener("mouseleave", () => {
+        document.body.classList.remove("bg-react");
+      });
+
+      card.addEventListener("click", e => {
+        const ripple = document.createElement("span");
+        ripple.className = "card-ripple";
+
+        const rect = card.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+
+        ripple.style.width = ripple.style.height = size + "px";
+        ripple.style.left = (e.clientX - rect.left - size / 2) + "px";
+        ripple.style.top = (e.clientY - rect.top - size / 2) + "px";
+
+        card.appendChild(ripple);
+        ripple.addEventListener("animationend", () => ripple.remove());
+      });
+
+    });
+  });
+</script>
+
+<script>
+  // Theme toggle (unchanged)
+  const btn = document.getElementById("themeToggle");
   const root = document.documentElement;
 
-  const saved = localStorage.getItem("eda-theme");
-  if (saved) {
-    root.setAttribute("data-theme", saved);
-    toggleBtn.innerText = saved === "dark" ? "☀ Light" : "🌙 Dark";
-  }
+  const saved = localStorage.getItem("eda-theme") || "dark";
+  root.setAttribute("data-theme", saved);
+  btn.innerText = saved === "dark" ? "☀ Light" : "🌙 Dark";
 
-  toggleBtn.onclick = () => {
-    const cur = root.getAttribute("data-theme");
-    const next = cur === "dark" ? "light" : "dark";
+  btn.onclick = () => {
+    const next = root.getAttribute("data-theme") === "dark"
+      ? "light"
+      : "dark";
     root.setAttribute("data-theme", next);
     localStorage.setItem("eda-theme", next);
-    toggleBtn.innerText = next === "dark" ? "☀ Light" : "🌙 Dark";
+    btn.innerText = next === "dark" ? "☀ Light" : "🌙 Dark";
   };
 </script>
 
