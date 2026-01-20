@@ -1,6 +1,7 @@
 """
 from django.urls import path
 from . import views
+from .views import run_detail
 
 urlpatterns = [
 
@@ -25,6 +26,7 @@ urlpatterns = [
 """
 from django.urls import path
 from . import views
+from .views import AddSlideItemAPIView
 
 urlpatterns = [
     path("", views.home, name="launcher-home"),
@@ -62,6 +64,28 @@ urlpatterns = [
     #path("logs/list/<slug:tool_slug>/",views.logs_list,name="logs-list"),
 
     path("logs/run/<int:run_id>/download/",views.download_run_logs,name="download-run-logs"),
+
+    path("presentations/", views.presentation_list, name="presentation-list"),
+
+    path("presentation/<int:pk>/", views.presentation_detail, name="presentation-detail"),
+
+    path("presentations/new/", views.presentation_create, name="presentation-create"),
+
+    path("api/slides/<uuid:slide_id>/items/",AddSlideItemAPIView.as_view(),name="add-slide-item"),
+
+    #path("runs/<int:run_id>/", views.run_detail, name="run-detail"),
+    # launcher/urls.py
+    path("presentation/<int:pk>/set-template/",views.set_presentation_template,name="presentation-set-template"),
+
+    path("presentation/<int:pk>/pdf/",views.presentation_pdf,name="presentation-pdf",),
+
+    path("presentation/<int:pk>/pptx/",views.presentation_pptx,name="presentation-pptx"),
+
+    
+
+
+
+
 
 ]
 

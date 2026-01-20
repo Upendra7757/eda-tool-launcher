@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+import uuid
+
 
 User = get_user_model()
 
@@ -233,3 +235,175 @@ class LayoutMetadata(models.Model):
 
     def __str__(self):
         return f"Layout metadata for run {self.run.id}"
+    
+# =====================================================
+# DESIGN REVIEW / PRESENTATION MODEL
+# =====================================================
+from django.db import models
+from django.contrib.auth.models import User
+
+
+class PresentationTemplate(models.Model):
+    key = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+
+    base_template = models.CharField(
+        max_length=200,
+        help_text="Example: launcher/presentation/detail.html"
+    )
+
+    def __str__(self):
+        return self.name
+
+
+class PresentationTheme(models.Model):
+    key = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+
+    css_file = models.CharField(
+        max_length=200,
+        help_text="Example: css/themes/dark.css"
+    )
+
+    def __str__(self):
+        return self.name
+
+
+class Presentation(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    run = models.ForeignKey(
+        "ToolRun",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="presentations"
+    )
+
+    template = models.ForeignKey(
+        PresentationTemplate,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="presentations"
+    )
+
+    theme = models.ForeignKey(
+        PresentationTheme,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="presentations"
+    )
+
+    def __str__(self):
+        return self.title
+
+class Slide(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    presentation = models.ForeignKey(
+        Presentation,
+        on_delete=models.CASCADE,
+        related_name="slides"
+    )
+
+    title = models.CharField(max_length=255, blank=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order"]
+
+    def __str__(self):
+        return f"{self.presentation.title} - Slide {self.order}"
+
+from django.conf import settings
+
+class RunArtifact(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    run = models.ForeignKey(
+        "ToolRun",
+        on_delete=models.CASCADE,
+        related_name="artifacts"
+    )
+
+    artifact_type = models.CharField(
+        max_length=30,
+        choices=[
+            ("image", "Image"),
+            ("metadata", "Metadata"),
+            ("log", "Log"),
+            ("gds", "GDS"),
+            ("report", "Report"),
+        ]
+    )
+
+    name = models.CharField(max_length=255)
+
+    # MUST be relative to MEDIA_ROOT
+    file_path = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def media_url(self):
+        """
+        URL for templates <img src=...>
+        """
+        return f"{settings.MEDIA_URL}{self.file_path}"
+
+    def absolute_path(self):
+        """
+        Filesystem path for reading logs / json
+        """
+        return settings.MEDIA_ROOT / self.file_path
+
+    def __str__(self):
+        return f"{self.artifact_type}: {self.name}"
+
+
+class SlideItem(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    slide = models.ForeignKey(
+        Slide,
+        on_delete=models.CASCADE,
+        related_name="items"
+    )
+
+    artifact = models.ForeignKey(
+        RunArtifact,
+        on_delete=models.CASCADE
+    )
+
+    item_type = models.CharField(
+        max_length=20,
+        choices=[
+            ("image", "Image"),
+            ("log_snippet", "Log Snippet"),
+            ("attachment", "Attachment"),
+        ]
+    )
+
+    config = models.JSONField(blank=True, null=True)
+    # Example:
+    # {
+    #   "log_start": 120,
+    #   "log_end": 180,
+    #   "zoom": 2.0,
+    #   "note": "Timing issue here"
+    # }
+
+    def __str__(self):
+        return f"{self.item_type} on {self.slide}"

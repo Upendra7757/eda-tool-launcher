@@ -1,0 +1,57 @@
+{% extends "launcher/base.html" %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto">
+
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold">📊 Design Review</h1>
+    <a href="{% url 'presentation-create' %}"
+      class="btn-primary">
+      ➕ New Presentation
+    </a>
+    <p class="text-sub mt-1">
+      Presentations created from simulation and layout runs
+    </p>
+  </div>
+
+  {% if presentations %}
+    <div class="space-y-6">
+      {% for p in presentations %}
+      <div class="glass p-6 rounded-2xl flex justify-between items-center">
+
+        <!-- Left -->
+        <div>
+          <h2 class="text-lg font-semibold">
+            {{ p.title|default:"Untitled Presentation" }}
+          </h2>
+
+          <div class="text-sm text-sub mt-1">
+            Created {{ p.created_at|date:"M d, Y · h:i A" }}
+          </div>
+
+          <div class="mt-3">
+            <a href="{% url 'presentation-detail' p.id %}"
+               class="text-sm text-blue-400 hover:underline">
+              ▶ Open Presentation
+            </a>
+          </div>
+        </div>
+
+        <!-- Right -->
+        <div class="text-sm text-sub">
+          {{ p.slides.count }} slides
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="glass p-10 text-center rounded-xl text-sub">
+      No presentations created yet.
+    </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

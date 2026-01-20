@@ -1,0 +1,375 @@
+{% extends "launcher/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="
+  presentation-root
+  template-{{ presentation.template.key }}
+  theme-{{ presentation.theme.key }}
+">
+
+<div class="max-w-[1600px] mx-auto px-6 py-6">
+
+  <!-- ================= HEADER ================= -->
+  <header class="header-bar">
+    <div>
+      <h1 class="title">{{ presentation.title }}</h1>
+      <div class="subtitle">
+        Run {{ presentation.run.id }} • {{ presentation.run.tool.name }}
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center;">
+      <a href="{% url 'presentation-pdf' presentation.id %}"
+          target="_blank"
+          class="bg-gray-700 hover:bg-gray-600 text-white text-xs px-3 py-1.5 rounded">
+        Export PDF
+      </a>
+      <a href="{% url 'presentation-pptx' presentation.id %}"
+          class="bg-green-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded">
+        Export PPTX
+      </a>
+
+
+      <a href="{% url 'presentation-list' %}" class="back-link">← Back</a>
+    </div>
+</div>
+
+
+    <a href="{% url 'presentation-list' %}" class="back-link">← Back</a>
+  </header>
+
+  <!-- ================= MAIN GRID ================= -->
+  <section class="layout-grid">
+
+    <!-- ================= SLIDES ================= -->
+    <aside class="panel slides-panel">
+      <div class="panel-header">Slides</div>
+
+      {% for slide in slides %}
+      <a href="?slide={{ slide.id }}"
+         class="slide-item {% if slide == selected_slide %}active{% endif %}">
+        {{ slide.title }}
+      </a>
+      {% endfor %}
+    </aside>
+
+    <!-- ================= CANVAS ================= -->
+    <main class="panel canvas-panel">
+      <div class="panel-header accent">Canvas</div>
+
+      {% for item in items %}
+
+        {% if item.item_type == "image" and item.artifact %}
+        <div class="viewer-root">
+          <div class="viewer-toolbar">
+            <button onclick="zoomIn(this)">+</button>
+            <button onclick="zoomOut(this)">−</button>
+            <button onclick="resetZoom(this)">Reset</button>
+          </div>
+          <div class="viewer-viewport">
+            <img src="/uploads/{{ item.artifact.file_path }}"
+                 class="viewer-image"
+                 draggable="false">
+          </div>
+        </div>
+        {% endif %}
+
+        {% if item.item_type == "attachment" %}
+        <section class="data-panel metadata">
+          <div class="data-title">Metadata JSON</div>
+          <pre>{{ item.inline_content }}</pre>
+        </section>
+        {% endif %}
+
+        {% if item.item_type == "log_snippet" %}
+        <section class="data-panel logs">
+          <div class="data-title">Execution Logs</div>
+          <pre>{{ item.inline_content }}</pre>
+        </section>
+        {% endif %}
+
+      {% endfor %}
+    </main>
+
+    <!-- ================= RIGHT PANEL ================= -->
+    <aside class="panel side-panel">
+
+      <!-- PROPERTIES -->
+      <section>
+        <div class="panel-header">Properties</div>
+        <div class="kv">
+          <div><span>Slide</span>{{ selected_slide.title }}</div>
+          <div><span>Items</span>{{ items|length }}</div>
+          <div><span>Status</span>{{ presentation.run.status|upper }}</div>
+        </div>
+      </section>
+
+      <!-- STYLE -->
+      <section class="divider">
+        <div class="panel-header">Presentation Style</div>
+
+        <form method="post" class="style-form">
+          {% csrf_token %}
+
+          <label>Template</label>
+          <select name="template_key">
+            {% for tpl in available_templates %}
+            <option value="{{ tpl.key }}"
+              {% if presentation.template.key == tpl.key %}selected{% endif %}>
+              {{ tpl.name }}
+            </option>
+            {% endfor %}
+          </select>
+
+          <label>Theme</label>
+          <select name="theme_key">
+            {% for th in available_themes %}
+            <option value="{{ th.key }}"
+              {% if presentation.theme.key == th.key %}selected{% endif %}>
+              {{ th.name }}
+            </option>
+            {% endfor %}
+          </select>
+
+          <button class="apply-btn">Apply Style</button>
+        </form>
+      </section>
+
+      <!-- SUMMARY -->
+      <section class="divider">
+        <div class="panel-header">Run Summary</div>
+        <div class="kv">
+          <div><span>Run ID</span>{{ presentation.run.id }}</div>
+          <div><span>Tool</span>{{ presentation.run.tool.name }}</div>
+          <div><span>Created</span>{{ presentation.created_at }}</div>
+        </div>
+      </section>
+
+    </aside>
+  </section>
+</div>
+</div>
+
+<!-- ================= STYLES ================= -->
+<style>
+
+/* ================= BASE ================= */
+.presentation-root {
+  min-height: 100vh;
+  transition: background .3s ease;
+}
+
+.header-bar {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  padding-bottom:14px;
+  margin-bottom:18px;
+}
+
+.title {
+  font-size:22px;
+  font-weight:600;
+}
+
+.subtitle {
+  font-size:12px;
+  opacity:.6;
+}
+
+.back-link {
+  font-size:12px;
+  color:#60a5fa;
+}
+
+/* ================= GRID ================= */
+.layout-grid {
+  display:grid;
+  grid-template-columns: 220px 1fr 300px;
+  gap:18px;
+}
+
+/* ================= PANELS ================= */
+.panel {
+  background: rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:14px;
+  padding:14px;
+}
+
+.panel-header {
+  font-size:11px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  opacity:.65;
+  margin-bottom:10px;
+}
+
+.panel-header.accent {
+  color:#a78bfa;
+}
+
+/* ================= SLIDES ================= */
+.slide-item {
+  display:block;
+  padding:8px 10px;
+  font-size:13px;
+  border-radius:8px;
+  margin-bottom:4px;
+  transition:.15s;
+}
+
+.slide-item:hover {
+  background:rgba(255,255,255,.08);
+}
+
+.slide-item.active {
+  background:#7c3aed;
+  color:white;
+  font-weight:500;
+}
+
+/* ================= VIEWER ================= */
+.viewer-root {
+  background:#000;
+  border-radius:12px;
+  border:1px solid #333;
+  margin-bottom:20px;
+}
+
+.viewer-toolbar {
+  display:flex;
+  justify-content:flex-end;
+  gap:6px;
+  padding:6px;
+}
+
+.viewer-toolbar button {
+  background:#222;
+  border:1px solid #444;
+  color:white;
+  font-size:11px;
+  padding:3px 8px;
+  border-radius:6px;
+}
+
+.viewer-viewport {
+  position:relative;
+  height:520px;
+  overflow:hidden;
+}
+
+.viewer-image {
+  position:absolute;
+  top:0;
+  left:0;
+}
+
+/* ================= DATA PANELS ================= */
+.data-panel {
+  border-radius:12px;
+  padding:12px;
+  font-size:11px;
+  margin-bottom:18px;
+}
+
+.data-title {
+  font-size:10px;
+  letter-spacing:.1em;
+  margin-bottom:6px;
+}
+
+.data-panel pre {
+  white-space:pre-wrap;
+  line-height:1.5;
+}
+
+.data-panel.metadata {
+  border:1px solid #22c55e55;
+  background:#022c22;
+  color:#86efac;
+}
+
+.data-panel.logs {
+  border:1px solid #facc1555;
+  background:#2c2502;
+  color:#fde68a;
+}
+
+/* ================= SIDE ================= */
+.kv div {
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  margin-bottom:6px;
+}
+
+.kv span {
+  opacity:.5;
+}
+
+.divider {
+  border-top:1px solid rgba(255,255,255,.08);
+  padding-top:12px;
+  margin-top:12px;
+}
+
+/* ================= FORM ================= */
+.style-form label {
+  font-size:10px;
+  opacity:.6;
+  margin-top:6px;
+  display:block;
+}
+
+.style-form select {
+  width:100%;
+  background:#000;
+  border:1px solid #444;
+  color:white;
+  padding:4px;
+  font-size:12px;
+  border-radius:6px;
+}
+
+.apply-btn {
+  width:100%;
+  margin-top:10px;
+  background:#7c3aed;
+  color:white;
+  border-radius:8px;
+  padding:6px;
+  font-size:12px;
+}
+
+/* ================= THEMES ================= */
+.theme-dark { background:#0b0f19; color:#e5e7eb; }
+.theme-light { background:#f3f4f6; color:#111827; }
+.theme-blueprint {
+  background:
+    linear-gradient(#0a1a2f 1px, transparent 1px),
+    linear-gradient(90deg, #0a1a2f 1px, transparent 1px);
+  background-size:24px 24px;
+}
+
+/* ================= TEMPLATES ================= */
+.template-executive .slides-panel,
+.template-executive .side-panel { display:none; }
+.template-executive .canvas-panel { grid-column:1 / -1; }
+
+.template-engineering pre { font-size:10px; }
+
+</style>
+
+<!-- ================= SCRIPT ================= -->
+<script>
+function ctx(r){if(!r._c){const i=r.querySelector(".viewer-image"),v=r.querySelector(".viewer-viewport");r._c={s:1,x:(v.clientWidth-i.naturalWidth)/2,y:(v.clientHeight-i.naturalHeight)/2,i};a(r._c)}return r._c}
+function a(c){c.i.style.transform=`translate(${c.x}px,${c.y}px) scale(${c.s})`}
+function zoomIn(b){const c=ctx(b.closest(".viewer-root"));c.s=Math.min(c.s+0.25,8);a(c)}
+function zoomOut(b){const c=ctx(b.closest(".viewer-root"));c.s=Math.max(c.s-0.25,0.25);a(c)}
+function resetZoom(b){const r=b.closest(".viewer-root");r._c=null;ctx(r)}
+</script>
+
+{% endblock %}

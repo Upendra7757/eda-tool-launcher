@@ -48,10 +48,11 @@
 let uploadedPath = null;
 
 function uploadGDS() {
+  // ✅ FIXED: correct element ID
   const fileInput = document.getElementById("gdsFile");
   const status = document.getElementById("status");
 
-  if (!fileInput.files.length) {
+  if (!fileInput || !fileInput.files.length) {
     alert("Please select a GDS file");
     return;
   }
@@ -59,29 +60,62 @@ function uploadGDS() {
   const fd = new FormData();
   fd.append("file", fileInput.files[0]);
 
-  status.innerText = "Uploading GDS file...";
+  status.innerText = "Running KLayout batch...";
 
-  fetch("/klayout-run/", { method: "POST", body: fd })
-    .then(r => r.json())
-    .then(d => {
-      if (!d.ok) {
-        status.innerText = d.error;
-        return;
-      }
-      uploadedPath = d.gds;
-      status.innerText = d.message;
-      document.getElementById("openBtn").classList.remove("hidden");
-    })
-    .catch(err => {
-      status.innerText = "Error: " + err;
-    });
+  // ✅ CORRECT URL (matches your backend)
+  fetch("/klayout-run/", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": "{{ csrf_token }}"
+    },
+    body: fd
+  })
+  .then(async (response) => {
+    const text = await response.text();
+    console.log("HTTP STATUS:", response.status);
+    console.log("RAW RESPONSE:", text.substring(0, 300));
+
+    // If HTML returned, show error clearly
+    if (text.trim().startsWith("<")) {
+      status.innerText = "Server returned HTML (check URL / CSRF / view)";
+      return null;
+    }
+
+    return JSON.parse(text);
+  })
+  .then(d => {
+    if (!d) return;
+
+    if (!d.ok) {
+      status.innerText = d.error || "Run failed";
+      return;
+    }
+
+    status.innerText = d.message || "Run completed";
+
+    // ✅ REDIRECT TO RUN DETAIL PAGE
+    if (d.redirect) {
+      window.location.href = d.redirect;
+      return;
+    }
+
+    // fallback (kept for safety)
+    uploadedPath = d.gds || null;
+    document.getElementById("openBtn").classList.remove("hidden");
+  })
+  .catch(err => {
+    console.error(err);
+    status.innerText = "Error: " + err;
+  });
 }
 
+// ✅ OPEN DESKTOP — UNCHANGED
 function openDesktop() {
   fetch("/launch-desktop/klayout/", { method: "POST" })
     .then(r => r.json())
     .then(d => alert(d.message || d.error));
 }
 </script>
+
 
 {% endblock %}
