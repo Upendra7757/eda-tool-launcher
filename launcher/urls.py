@@ -81,6 +81,9 @@ urlpatterns = [
 
     path("presentation/<int:pk>/pptx/",views.presentation_pptx,name="presentation-pptx"),
 
+    path("run/<int:run_id>/create-presentation/",views.create_presentation,name="create-presentation")
+
+
     
 
 

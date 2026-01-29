@@ -668,7 +668,7 @@ from .models import ToolRun, Tool, RunArtifact
 # ---------------------------
 def wsl_path(p):
     return "/mnt/c" + p.replace("C:", "").replace("\\", "/")
-
+"""
 @csrf_exempt
 def klayout_run(request):
     if request.method != "POST":
@@ -753,6 +753,94 @@ def klayout_run(request):
         "presentation_id": presentation.id,
         "redirect": f"/presentation/{presentation.id}/"
     })
+"""
+@csrf_exempt
+def klayout_run(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=400)
+
+    upload = request.FILES.get("file")
+    if not upload:
+        return JsonResponse({"ok": False, "error": "No GDS uploaded"}, status=400)
+
+    # -------------------------
+    # Create run directory
+    # -------------------------
+    run_dir_name = uuid.uuid4().hex
+    run_dir = os.path.join(settings.MEDIA_ROOT, "runs", run_dir_name)
+    os.makedirs(run_dir, exist_ok=True)
+
+    gds_path = os.path.join(run_dir, "generated_design.gds")
+    with open(gds_path, "wb") as f:
+        for chunk in upload.chunks():
+            f.write(chunk)
+
+    # -------------------------
+    # Create ToolRun
+    # -------------------------
+    run = ToolRun.objects.create(
+        tool=Tool.objects.get(slug="klayout"),
+        user=request.user if request.user.is_authenticated else None,
+        input_file=upload.name,
+        run_dir=run_dir,
+        status="running",
+    )
+
+    # -------------------------
+    # Output paths
+    # -------------------------
+    png_path = os.path.join(run_dir, "preview.png")
+    meta_path = os.path.join(run_dir, "metadata.json")
+    log_path = os.path.join(run_dir, "klayout.log")
+
+    # -------------------------
+    # Run KLayout batch (WSL)
+    # -------------------------
+    cmd = (
+        f"export KLAYOUT_GDS='{wsl_path(gds_path)}' && "
+        f"export KLAYOUT_PNG='{wsl_path(png_path)}' && "
+        f"export KLAYOUT_META='{wsl_path(meta_path)}' && "
+        f"klayout -b -r scripts/klayout_extract.py "
+        f"> '{wsl_path(log_path)}' 2>&1"
+    )
+
+    subprocess.run(
+        ["wsl", "bash", "-lc", cmd],
+        text=True
+    )
+
+    # -------------------------
+    # ✅ OPEN ORIGINAL DESKTOP KLayout (NEW)
+    # -------------------------
+    try:
+        klayout_exe = r"C:\Users\thefi\AppData\Roaming\KLayout\klayout_app.exe"
+        subprocess.Popen([klayout_exe, gds_path])
+    except Exception as e:
+        print("KLayout desktop launch failed:", e)
+
+    # -------------------------
+    # Register artifacts
+    # -------------------------
+    register_klayout_artifacts(run)
+
+    # -------------------------
+    # Create presentation + slides
+    # -------------------------
+    presentation = auto_create_presentation(run)
+
+    # -------------------------
+    # Attach artifacts
+    # -------------------------
+    auto_attach_artifacts_to_slides(presentation, run)
+
+    return JsonResponse({
+        "ok": True,
+        "message": "KLayout batch run completed",
+        "run_id": str(run.id),
+        "presentation_id": presentation.id,
+        "redirect": f"/presentation/{presentation.id}/"
+    })
+
 
 def register_klayout_artifacts(run):
     base = Path(run.run_dir)  # ✅ already uploads/runs/<uuid>
@@ -773,34 +861,80 @@ def register_klayout_artifacts(run):
                     "report"
                 ),
                 name=name,
-                # ✅ RELATIVE TO MEDIA_ROOT
+                #  RELATIVE TO MEDIA_ROOT
                 file_path=str(full_path.relative_to(settings.MEDIA_ROOT))
             )
+
+from django.shortcuts import redirect, get_object_or_404
+from .models import ToolRun, Presentation, Slide, SlideItem, RunArtifact
+
+def create_presentation(request, run_id):
+    run = get_object_or_404(ToolRun, id=run_id)
+
+    #  Avoid duplicate presentations
+    presentation = Presentation.objects.filter(run=run).first()
+    if presentation:
+        return redirect("presentation-detail", pk=presentation.id)
+
+    # ✅ Create presentation
+    presentation = Presentation.objects.create(
+        title=f"KLayout Review – Run {run.id}",
+        run=run,
+        template=PresentationTemplate.objects.get(key="standard"),
+        theme=PresentationTheme.objects.get(key="dark"),
+    )
+
+    # ✅ Slides
+    layout_slide = Slide.objects.create(
+        presentation=presentation,
+        title="Layout View",
+        order=1,
+    )
+
+    metadata_slide = Slide.objects.create(
+        presentation=presentation,
+        title="Metadata",
+        order=2,
+    )
+
+    logs_slide = Slide.objects.create(
+        presentation=presentation,
+        title="Logs",
+        order=3,
+    )
+
+    # ✅ Attach artifacts
+    artifacts = RunArtifact.objects.filter(run=run)
+
+    for artifact in artifacts:
+        if artifact.artifact_type == "image":
+            SlideItem.objects.create(
+                slide=layout_slide,
+                artifact=artifact,
+                item_type="image",
+            )
+
+        elif artifact.artifact_type == "report":
+            SlideItem.objects.create(
+                slide=metadata_slide,
+                artifact=artifact,
+                item_type="attachment",
+            )
+
+        elif artifact.artifact_type == "log":
+            SlideItem.objects.create(
+                slide=logs_slide,
+                artifact=artifact,
+                item_type="log_snippet",
+            )
+
+    # ✅ Redirect to presentation UI
+    return redirect("presentation-detail", pk=presentation.id)
 
 
 
 from launcher.models import Presentation, Slide
-"""
-def auto_create_presentation(run):
-    pres = Presentation.objects.filter(run=run).first()
-    if pres:
-        return pres
 
-    pres = Presentation.objects.create(
-        title=f"KLayout Review – Run {run.id}",
-        description="Auto-generated design review workspace",
-        created_by=run.user,
-        run=run,
-    )
-
-    Slide.objects.bulk_create([
-        Slide(presentation=pres, title="Layout Overview", order=1),
-        Slide(presentation=pres, title="Metadata & Checks", order=2),
-        Slide(presentation=pres, title="Logs & Notes", order=3),
-    ])
-
-    return pres
-"""
 from launcher.models import (
     Presentation,
     PresentationTemplate,
@@ -856,41 +990,7 @@ def auto_create_presentation(run, user=None):
     return presentation
 
 
-"""
-from launcher.models import SlideItem
 
-def auto_attach_artifacts_to_slides(presentation, run):
-    slides = list(presentation.slides.all().order_by("order"))
-
-    for art in run.artifacts.all():
-
-        if SlideItem.objects.filter(
-            slide__presentation=presentation,
-            artifact=art
-        ).exists():
-            continue  # ✅ avoid duplicates
-
-        if art.artifact_type == "image":
-            SlideItem.objects.create(
-                slide=slides[0],
-                artifact=art,
-                item_type="image"
-            )
-
-        elif art.artifact_type == "report":
-            SlideItem.objects.create(
-                slide=slides[1],
-                artifact=art,
-                item_type="attachment"
-            )
-
-        elif art.artifact_type == "log":
-            SlideItem.objects.create(
-                slide=slides[2],
-                artifact=art,
-                item_type="log_snippet"
-            )
-"""
 from launcher.models import Slide, SlideItem, RunArtifact
 
 def auto_attach_artifacts_to_slides(presentation, run):
@@ -981,82 +1081,6 @@ from launcher.models import Presentation
 
 
 
-"""
-def presentation_detail(request, pk):
-    presentation = get_object_or_404(Presentation, pk=pk)
-    slides = presentation.slides.all().order_by("order")
-
-    slide_id = request.GET.get("slide")
-    selected_slide = slides.filter(id=slide_id).first() if slide_id else slides.first()
-
-    # ✅ CORRECT run_dir access
-    run_dir = Path(presentation.run.run_dir)
-
-    if selected_slide:
-        for item in selected_slide.items.all():
-            item.inline_content = None
-
-            if item.item_type in ("attachment", "log_snippet"):
-                abs_path = Path(settings.MEDIA_ROOT) / item.artifact.file_path
-                if abs_path.exists():
-                    item.inline_content = abs_path.read_text(
-                        encoding="utf-8", errors="replace"
-                    )
-                else:
-                    item.inline_content = "[FILE NOT FOUND]"
-
-    return render(
-        request,
-        "launcher/presentation/detail.html",
-        {
-            "presentation": presentation,
-            "slides": slides,
-            "selected_slide": selected_slide,
-        }
-    )
-"""
-"""
-def presentation_detail(request, pk):
-    presentation = get_object_or_404(Presentation, pk=pk)
-    slides = presentation.slides.all().order_by("order")
-
-    slide_id = request.GET.get("slide")
-    selected_slide = slides.filter(id=slide_id).first() if slide_id else slides.first()
-
-    items = []
-
-    if selected_slide:
-        for item in selected_slide.items.select_related("artifact").all():
-            item.inline_content = None
-
-            if item.item_type in ("attachment", "log_snippet"):
-                abs_path = Path(settings.MEDIA_ROOT) / item.artifact.file_path
-
-                if abs_path.exists():
-                    item.inline_content = abs_path.read_text(
-                        encoding="utf-8", errors="replace"
-                    )
-                else:
-                    item.inline_content = f"[FILE NOT FOUND] {abs_path}"
-
-            items.append(item)
-
-    return render(
-        request,
-        #presentation.template.base_template
-        #if presentation.template
-        "launcher/presentation/detail.html",
-        {
-            "presentation": presentation,
-            "slides": slides,
-            "selected_slide": selected_slide,
-            "items": items,
-            "theme": presentation.theme,
-            "template": presentation.template,
-            #"items": items,   # ✅ CRITICAL
-        }
-    )
-"""
 from pathlib import Path
 
 from django.conf import settings
@@ -1254,48 +1278,7 @@ def presentation_create(request):
     )
 
     return redirect("presentation-detail", pk=presentation.id)
-"""
-from django.template.loader import render_to_string
-from django.http import HttpResponse
-from weasyprint import HTML
-from django.conf import settings
-import os
 
-from django.utils import timezone
-from pathlib import Path
-from django.conf import settings
-
-def presentation_pdf(request, pk):
-    presentation = get_object_or_404(Presentation, pk=pk)
-    slides = presentation.slides.prefetch_related("items__artifact").all()
-
-    # Populate inline_content for PDF (same as UI)
-    for slide in slides:
-        for item in slide.items.all():
-            item.inline_content = ""
-            if item.item_type in ("attachment", "log_snippet") and item.artifact:
-                abs_path = Path(settings.MEDIA_ROOT) / item.artifact.file_path
-                if abs_path.exists():
-                    item.inline_content = abs_path.read_text(
-                        encoding="utf-8", errors="replace"
-                    )
-
-    html = render_to_string(
-        "launcher/presentation/detail_pdf.html",
-        {
-            "presentation": presentation,
-            "slides": slides,
-            "request": request,
-            "now": timezone.now(),
-        }
-    )
-
-    pdf = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
-
-    response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = f'inline; filename="presentation-{pk}.pdf"'
-    return response
-"""
 
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
@@ -1454,40 +1437,7 @@ def presentation_pptx(request, pk):
 
 
 
-# launcher/views.py
-"""
-@api_view(["POST"])
-def run_tool(request, slug):
-    tool = get_object_or_404(Tool, slug=slug)
 
-    upload = request.FILES.get("file")
-    if not upload:
-        return JsonResponse({"ok": False, "error": "No file uploaded"}, status=400)
-
-    uploads_dir = os.path.join(settings.BASE_DIR, "uploads")
-    os.makedirs(uploads_dir, exist_ok=True)
-
-    filename = f"{uuid.uuid4().hex}_{upload.name}"
-    full_path = os.path.join(uploads_dir, filename)
-
-    with open(full_path, "wb") as f:
-        for chunk in upload.chunks():
-            f.write(chunk)
-
-    try:
-        result = execute_tool_run(
-            tool=tool,
-            user=request.user if request.user.is_authenticated else None,
-            upload_filename=filename,
-        )
-    except Exception as e:
-        return JsonResponse({"ok": False, "error": str(e)}, status=500)
-
-    return JsonResponse({
-        "ok": True,
-        **result
-    })
-"""
 
 def logs_page(request):
     runs = ToolRun.objects.order_by("-created_at")[:50]

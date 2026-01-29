@@ -3,12 +3,22 @@
 
 <div class="max-w-4xl mx-auto">
 
-  <!-- ================= BACK NAVIGATION ================= -->
-  <div class="mb-6">
+  <!-- ================= BACK + HEADER ================= -->
+  <div class="flex justify-between items-center mb-6">
+
     <a href="{% url 'launcher-category' 'custom-layout' %}"
        class="inline-flex items-center gap-2 text-sm text-sub hover:underline">
       ← Back to Tools
     </a>
+
+    <!-- 🔥 CREATE PRESENTATION (HIDDEN INITIALLY) -->
+    <div id="presentationHeaderBtn" class="hidden">
+      <a id="createPresentationLink"
+         class="bg-purple-600 hover:bg-purple-500 text-white text-xs px-4 py-2 rounded-lg shadow">
+        Create Presentation
+      </a>
+    </div>
+
   </div>
 
   <!-- ================= MAIN CARD ================= -->
@@ -46,9 +56,9 @@
 
 <script>
 let uploadedPath = null;
+let presentationUrl = null;
 
 function uploadGDS() {
-  // ✅ FIXED: correct element ID
   const fileInput = document.getElementById("gdsFile");
   const status = document.getElementById("status");
 
@@ -62,7 +72,6 @@ function uploadGDS() {
 
   status.innerText = "Running KLayout batch...";
 
-  // ✅ CORRECT URL (matches your backend)
   fetch("/klayout-run/", {
     method: "POST",
     headers: {
@@ -72,12 +81,9 @@ function uploadGDS() {
   })
   .then(async (response) => {
     const text = await response.text();
-    console.log("HTTP STATUS:", response.status);
-    console.log("RAW RESPONSE:", text.substring(0, 300));
 
-    // If HTML returned, show error clearly
     if (text.trim().startsWith("<")) {
-      status.innerText = "Server returned HTML (check URL / CSRF / view)";
+      status.innerText = "Server error (HTML returned)";
       return null;
     }
 
@@ -91,15 +97,20 @@ function uploadGDS() {
       return;
     }
 
-    status.innerText = d.message || "Run completed";
+    status.innerText = d.message || "Run completed successfully";
 
-    // ✅ REDIRECT TO RUN DETAIL PAGE
+    // ✅ SHOW CREATE PRESENTATION BUTTON (TOP HEADER)
     if (d.redirect) {
-      window.location.href = d.redirect;
-      return;
+      presentationUrl = d.redirect;
+
+      const btn = document.getElementById("presentationHeaderBtn");
+      const link = document.getElementById("createPresentationLink");
+
+      link.href = presentationUrl;
+      btn.classList.remove("hidden");
     }
 
-    // fallback (kept for safety)
+    // fallback safety
     uploadedPath = d.gds || null;
     document.getElementById("openBtn").classList.remove("hidden");
   })
@@ -109,13 +120,12 @@ function uploadGDS() {
   });
 }
 
-// ✅ OPEN DESKTOP — UNCHANGED
+// ✅ OPEN DESKTOP KLAYOUT (UNCHANGED)
 function openDesktop() {
   fetch("/launch-desktop/klayout/", { method: "POST" })
     .then(r => r.json())
     .then(d => alert(d.message || d.error));
 }
 </script>
-
 
 {% endblock %}

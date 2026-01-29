@@ -185,6 +185,7 @@
 
     <!-- LAUNCH -->
     <button class="btn-primary"
+            data-launch
             onclick="toggleLaunchPanel('{{ tool.slug }}')">
       Launch
     </button>
@@ -197,11 +198,13 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
 
       <button class="btn-primary py-3 text-lg"
+              data-launch
               onclick="launchDesktop('{{ tool.slug }}')">
         Launch Desktop
       </button>
 
       <button class="btn-secondary py-3 text-lg"
+              data-launch
               onclick="launchWeb('{{ tool.slug }}')">
         Launch Web
       </button>

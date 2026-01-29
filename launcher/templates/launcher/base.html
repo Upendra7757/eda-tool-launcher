@@ -1,3 +1,4 @@
+{% load static %}
 <!doctype html>
 <html lang="en" data-theme="dark">
 <head>
@@ -24,7 +25,6 @@ html[data-theme="dark"] {
     rgba(255,255,255,0.05)
   );
   --glass-border: rgba(255,255,255,0.22);
-
   --text-main: #f8fafc;
   --text-sub: #c7cad6;
   --accent: #7c3aed;
@@ -45,7 +45,6 @@ html[data-theme="light"] {
     rgba(255,255,255,0.65)
   );
   --glass-border: rgba(15,23,42,0.15);
-
   --text-main: #0f172a;
   --text-sub: #334155;
   --accent: #7c3aed;
@@ -196,7 +195,7 @@ main h1, main h2, main h3, .page-title {
 }
 
 /* =====================================================
-   ✅ NEW ADDITION: ACCENT LINE (IDENTITY & HIERARCHY)
+   ACCENT LINE
 ===================================================== */
 .tool-card::before,
 .app-card::before {
@@ -207,14 +206,7 @@ main h1, main h2, main h3, .page-title {
   right: 20px;
   height: 3px;
   border-radius: 999px;
-
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--accent),
-    transparent
-  );
-
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
   opacity: 0.6;
   transition: opacity .35s ease, transform .35s ease;
 }
@@ -255,11 +247,20 @@ main h1, main h2, main h3, .page-title {
 body.bg-react {
   filter: brightness(1.05) saturate(1.15);
 }
-
   </style>
 </head>
 
 <body>
+
+<!-- 🔊 AUDIO (ADDED – DOES NOT CHANGE STRUCTURE) -->
+<audio id="launchSound" preload="auto">
+  <source src="{% static 'sounds/launch.mp3' %}" type="audio/mpeg">
+</audio>
+
+<audio id="buttonSound" preload="auto">
+  <source src="{% static 'sounds/button-click.mp3' %}" type="audio/mpeg">
+</audio>
+
 
 <div class="flex min-h-screen">
 
@@ -279,13 +280,13 @@ body.bg-react {
       <div class="nav-title">Simulation</div>
       <a href="{% url 'launcher-category' 'simulation-rtl' %}"
          class="sidebar-link {% if active_category == 'simulation-rtl' %}sidebar-active{% endif %}">
-        🧪 RTL / Simulation Verification
+        📐 RTL / Simulation Verification
       </a>
 
       <div class="nav-title">Layout</div>
       <a href="{% url 'launcher-category' 'custom-layout' %}"
          class="sidebar-link {% if active_category == 'custom-layout' %}sidebar-active{% endif %}">
-        🧩 Custom Layout
+        🖥️ Custom Layout
       </a>
 
       <div class="nav-title">Design Review</div>
@@ -337,7 +338,25 @@ body.bg-react {
 </div>
 
 <script>
-  // Background reaction + ripple
+  // 🔊 SOUND HELPER (ADDED)
+  const launchSound = document.getElementById("launchSound");
+  function playLaunchSound() {
+    if (!launchSound) return;
+    launchSound.currentTime = 0;
+    launchSound.volume = 0.9;
+    launchSound.play().catch(() => {});
+  }
+  function playButtonSound() {
+    const s = document.getElementById("buttonSound");
+    if (!s) return;
+    s.currentTime = 0;
+    s.volume = 0.6;
+    s.play().catch(() => {});
+  }
+</script>
+
+<script>
+  // Background reaction + ripple (UNCHANGED)
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".tool-card, .app-card").forEach(card => {
 
@@ -350,6 +369,11 @@ body.bg-react {
       });
 
       card.addEventListener("click", e => {
+
+        if (e.target.closest("button")) return; 
+
+        playLaunchSound(); // 🔊 ADDED (NO CHANGE TO LOGIC)
+
         const ripple = document.createElement("span");
         ripple.className = "card-ripple";
 
@@ -369,22 +393,61 @@ body.bg-react {
 </script>
 
 <script>
-  // Theme toggle (unchanged)
+  document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("button").forEach(btn => {
+
+    // Launch buttons → launch sound
+    if (btn.hasAttribute("data-launch")) {
+      btn.addEventListener("click", () => {
+        playLaunchSound();
+      });
+    }
+    // All other buttons → button click sound
+    else {
+      btn.addEventListener("click", () => {
+        playButtonSound();
+      });
+    }
+
+  });
+});
+
+</script>
+
+<script>
+  // Theme toggle (UNCHANGED)
   const btn = document.getElementById("themeToggle");
   const root = document.documentElement;
-
   const saved = localStorage.getItem("eda-theme") || "dark";
   root.setAttribute("data-theme", saved);
   btn.innerText = saved === "dark" ? "☀ Light" : "🌙 Dark";
 
   btn.onclick = () => {
-    const next = root.getAttribute("data-theme") === "dark"
-      ? "light"
-      : "dark";
+    const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
     root.setAttribute("data-theme", next);
     localStorage.setItem("eda-theme", next);
     btn.innerText = next === "dark" ? "☀ Light" : "🌙 Dark";
   };
+</script>
+
+<!-- =====================================================
+     🔊 ONLY ADDITION: NAVIGATION DELAY (JS ONLY)
+===================================================== -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("a.sidebar-link").forEach(link => {
+      const href = link.getAttribute("href");
+      if (!href || href === "#") return;
+
+      link.addEventListener("click", e => {
+        e.preventDefault();
+        playButtonSound(); 
+        setTimeout(() => {
+          window.location.href = href;
+        }, 350);
+      });
+    });
+  });
 </script>
 
 </body>
