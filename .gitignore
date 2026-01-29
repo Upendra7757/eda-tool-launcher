@@ -22,3 +22,10 @@ uploads/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Runtime / generated files
+runs/
+uploads/
+db.sqlite3
+*.gds
+
