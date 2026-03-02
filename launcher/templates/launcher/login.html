@@ -1,0 +1,112 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Login – EDA Tool Launcher</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      background:
+        radial-gradient(1200px circle at 15% 10%, rgba(56,189,248,0.25), transparent 60%),
+        radial-gradient(1000px circle at 85% 20%, rgba(168,85,247,0.25), transparent 60%),
+        linear-gradient(180deg, #f8fafc, #eef2f7);
+      font-family: Inter, ui-sans-serif, system-ui;
+    }
+
+    .glass {
+      background: linear-gradient(
+        180deg,
+        rgba(255,255,255,0.92),
+        rgba(248,250,252,0.82)
+      );
+      border: 1px solid rgba(15,23,42,0.12);
+      backdrop-filter: blur(22px) saturate(140%);
+      border-radius: 22px;
+      box-shadow:
+        0 30px 90px rgba(15,23,42,.25),
+        inset 0 1px 0 rgba(255,255,255,.6);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg,#5b21b6,#7c3aed,#8b5cf6);
+      border-radius: 14px;
+      padding: 12px;
+      font-weight: 600;
+      color: white;
+      transition: all .3s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 55px rgba(124,58,237,.45);
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,0.15);
+      background: rgba(255,255,255,0.8);
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 2px rgba(124,58,237,0.25);
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+      display: block;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center">
+
+  <form method="post" class="glass p-10 w-[420px] animate-fade-in">
+    {% csrf_token %}
+
+    <!-- Logo / Title -->
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-extrabold text-slate-900">EDA Launcher</h1>
+      <p class="text-slate-500 text-sm mt-1">
+        Enterprise Design Automation Platform
+      </p>
+    </div>
+
+    {{ form.non_field_errors }}
+
+    <!-- Username -->
+    <div class="mb-5">
+      {{ form.username.label_tag }}
+      {{ form.username }}
+    </div>
+
+    <!-- Password -->
+    <div class="mb-8">
+      {{ form.password.label_tag }}
+      {{ form.password }}
+    </div>
+
+    <!-- Submit -->
+    <button class="btn-primary w-full">
+      Sign In
+    </button>
+
+    <!-- Footer -->
+    <p class="text-center text-xs text-slate-500 mt-6">
+      Authorized users only • Secure access
+    </p>
+  </form>
+
+</body>
+</html>

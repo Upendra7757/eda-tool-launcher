@@ -27,6 +27,8 @@ urlpatterns = [
 from django.urls import path
 from . import views
 from .views import AddSlideItemAPIView
+from django.urls import path
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path("", views.home, name="launcher-home"),
@@ -81,10 +83,14 @@ urlpatterns = [
 
     path("presentation/<int:pk>/pptx/",views.presentation_pptx,name="presentation-pptx"),
 
-    path("run/<int:run_id>/create-presentation/",views.create_presentation,name="create-presentation")
+    path("run/<int:run_id>/create-presentation/",views.create_presentation,name="create-presentation"),
+
+    path('login/',auth_views.LoginView.as_view(template_name='launcher/login.html'),name='login'),
+
+    path('logout/',auth_views.LogoutView.as_view(),name='logout'),
 
 
-    
+    path('', views.dashboard, name='dashboard'),
 
 
 

@@ -1,4 +1,3 @@
-{% load static %}
 <!doctype html>
 <html lang="en" data-theme="dark">
 <head>
@@ -25,6 +24,7 @@ html[data-theme="dark"] {
     rgba(255,255,255,0.05)
   );
   --glass-border: rgba(255,255,255,0.22);
+
   --text-main: #f8fafc;
   --text-sub: #c7cad6;
   --accent: #7c3aed;
@@ -45,6 +45,7 @@ html[data-theme="light"] {
     rgba(255,255,255,0.65)
   );
   --glass-border: rgba(15,23,42,0.15);
+
   --text-main: #0f172a;
   --text-sub: #334155;
   --accent: #7c3aed;
@@ -195,7 +196,7 @@ main h1, main h2, main h3, .page-title {
 }
 
 /* =====================================================
-   ACCENT LINE
+   ✅ NEW ADDITION: ACCENT LINE (IDENTITY & HIERARCHY)
 ===================================================== */
 .tool-card::before,
 .app-card::before {
@@ -206,7 +207,14 @@ main h1, main h2, main h3, .page-title {
   right: 20px;
   height: 3px;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent),
+    transparent
+  );
+
   opacity: 0.6;
   transition: opacity .35s ease, transform .35s ease;
 }
@@ -247,37 +255,13 @@ main h1, main h2, main h3, .page-title {
 body.bg-react {
   filter: brightness(1.05) saturate(1.15);
 }
+
   </style>
 </head>
 
 <body>
-{% if not request.user.is_authenticated %}
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-  <div class="glass p-8 text-center w-[420px]">
-    <h2 class="text-2xl font-bold mb-4">Sign in required</h2>
-    <p class="text-sub mb-6">
-      Please sign in to access EDA tools
-    </p>
-    <a href="{% url 'login' %}" class="btn-primary w-full block">
-      🔐 Sign In
-    </a>
-  </div>
-</div>
-{% endif %}
-
-
-<!-- 🔊 AUDIO (ADDED – DOES NOT CHANGE STRUCTURE) -->
-<audio id="launchSound" preload="auto">
-  <source src="{% static 'sounds/launch.mp3' %}" type="audio/mpeg">
-</audio>
-
-<audio id="buttonSound" preload="auto">
-  <source src="{% static 'sounds/button-click.mp3' %}" type="audio/mpeg">
-</audio>
 
 <div class="flex min-h-screen">
-
-
 
   <!-- LEFT SIDEBAR -->
   <aside class="sidebar glass p-6">
@@ -295,13 +279,13 @@ body.bg-react {
       <div class="nav-title">Simulation</div>
       <a href="{% url 'launcher-category' 'simulation-rtl' %}"
          class="sidebar-link {% if active_category == 'simulation-rtl' %}sidebar-active{% endif %}">
-        📐 RTL / Simulation Verification
+        🧪 RTL / Simulation Verification
       </a>
 
       <div class="nav-title">Layout</div>
       <a href="{% url 'launcher-category' 'custom-layout' %}"
          class="sidebar-link {% if active_category == 'custom-layout' %}sidebar-active{% endif %}">
-        🖥️ Custom Layout
+        🧩 Custom Layout
       </a>
 
       <div class="nav-title">Design Review</div>
@@ -339,41 +323,13 @@ body.bg-react {
           Simulation · Layout · Verification · Analytics
         </p>
       </div>
+
       <div class="flex items-center gap-5">
         <button id="themeToggle" class="btn-primary">☀ Light</button>
-
-        {% if request.user.is_authenticated %}
-          <div class="flex items-center gap-4 glass px-4 py-2 rounded-xl">
-            <div class="w-9 h-9 rounded-full flex items-center justify-center 
-              bg-gradient-to-br from-violet-600 to-purple-500 
-              text-white font-bold uppercase shadow">
-              {{ request.user.username|slice:":1" }}
-            </div>
-            <div class="flex flex-col leading-tight">
-              <span class="text-xs text-sub">User:</span>
-              <span class="text-sm font-semibold">
-                {{ request.user.username }}
-              </span>
-              <span id="sessionTimer" class="text-[11px] text-sub">
-                Auto logout in <span id="timeLeft">10:00</span>
-              </span>
-            </div>
-            <div class="w-px h-6 bg-white/20"></div>
-            <form method="post" action="{% url 'logout' %}">
-              {% csrf_token %}
-              <button
-                type="submit"
-                class="text-sm font-medium text-red-400 hover:text-red-300 
-                      transition flex items-center gap-1">
-                Logout
-              </button>
-            </form>
-          </div>
-        {% else %}
-          <a href="{% url 'login' %}" class="btn-primary">🔐 Login</a>
-        {% endif %}
+        <div class="text-sm text-sub">
+          User: <strong>{{ request.user.username|default:"demo" }}</strong>
+        </div>
       </div>
-
     </div>
 
     {% block content %}{% endblock %}
@@ -381,25 +337,7 @@ body.bg-react {
 </div>
 
 <script>
-  // 🔊 SOUND HELPER (ADDED)
-  const launchSound = document.getElementById("launchSound");
-  function playLaunchSound() {
-    if (!launchSound) return;
-    launchSound.currentTime = 0;
-    launchSound.volume = 0.9;
-    launchSound.play().catch(() => {});
-  }
-  function playButtonSound() {
-    const s = document.getElementById("buttonSound");
-    if (!s) return;
-    s.currentTime = 0;
-    s.volume = 0.6;
-    s.play().catch(() => {});
-  }
-</script>
-
-<script>
-  // Background reaction + ripple (UNCHANGED)
+  // Background reaction + ripple
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".tool-card, .app-card").forEach(card => {
 
@@ -412,11 +350,6 @@ body.bg-react {
       });
 
       card.addEventListener("click", e => {
-
-        if (e.target.closest("button")) return; 
-
-        playLaunchSound(); // 🔊 ADDED (NO CHANGE TO LOGIC)
-
         const ripple = document.createElement("span");
         ripple.className = "card-ripple";
 
@@ -436,139 +369,23 @@ body.bg-react {
 </script>
 
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll("button").forEach(btn => {
-
-    // Launch buttons → launch sound
-    if (btn.hasAttribute("data-launch")) {
-      btn.addEventListener("click", () => {
-        playLaunchSound();
-      });
-    }
-    // All other buttons → button click sound
-    else {
-      btn.addEventListener("click", () => {
-        playButtonSound();
-      });
-    }
-
-  });
-});
-
-</script>
-
-<script>
-  // Theme toggle (UNCHANGED)
+  // Theme toggle (unchanged)
   const btn = document.getElementById("themeToggle");
   const root = document.documentElement;
+
   const saved = localStorage.getItem("eda-theme") || "dark";
   root.setAttribute("data-theme", saved);
   btn.innerText = saved === "dark" ? "☀ Light" : "🌙 Dark";
 
   btn.onclick = () => {
-    const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    const next = root.getAttribute("data-theme") === "dark"
+      ? "light"
+      : "dark";
     root.setAttribute("data-theme", next);
     localStorage.setItem("eda-theme", next);
     btn.innerText = next === "dark" ? "☀ Light" : "🌙 Dark";
   };
 </script>
-
-<!-- =====================================================
-     🔊 ONLY ADDITION: NAVIGATION DELAY (JS ONLY)
-===================================================== -->
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll("a.sidebar-link").forEach(link => {
-      const href = link.getAttribute("href");
-      if (!href || href === "#") return;
-
-      link.addEventListener("click", e => {
-        e.preventDefault();
-        playButtonSound(); 
-        setTimeout(() => {
-          window.location.href = href;
-        }, 350);
-      });
-    });
-  });
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const SESSION_LIMIT = 10 * 60; // 10 minutes
-  const WARNING_AT = 60;
-  const IDLE_DELAY = 5;
-
-  let countdown = SESSION_LIMIT;
-  let idleTimeout = null;
-  let countdownInterval = null;
-
-  const timerEl = document.getElementById("timeLeft");
-  const timerWrap = document.getElementById("sessionTimer");
-  const logoutForm = document.getElementById("autoLogoutForm");
-
-  if (!timerEl || !logoutForm) return;
-
-  function format(sec) {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  }
-
-  function stopCountdown() {
-    if (countdownInterval) {
-      clearInterval(countdownInterval);
-      countdownInterval = null;
-    }
-    countdown = SESSION_LIMIT;
-    timerEl.textContent = format(countdown);
-    timerWrap.classList.remove("text-red-400");
-  }
-
-  function startCountdown() {
-    if (countdownInterval) return;
-
-    countdownInterval = setInterval(() => {
-      countdown--;
-      timerEl.textContent = format(countdown);
-
-      if (countdown <= WARNING_AT) {
-        timerWrap.classList.add("text-red-400");
-      }
-
-      if (countdown <= 0) {
-        clearInterval(countdownInterval);
-        logoutForm.submit();
-      }
-    }, 1000);
-  }
-
-  function userActive() {
-    clearTimeout(idleTimeout);
-    stopCountdown();   // 🔑 THIS WAS MISSING
-
-    idleTimeout = setTimeout(() => {
-      startCountdown();
-    }, IDLE_DELAY * 1000);
-  }
-
-  // Track REAL user intent
-  ["click", "keydown", "mousemove", "scroll"].forEach(evt =>
-    document.addEventListener(evt, userActive, true)
-  );
-
-  // Init
-  userActive();
-});
-</script>
-
-
-
-
-
-<form id="autoLogoutForm" method="post" action="{% url 'logout' %}" class="hidden">
-  {% csrf_token %}
-</form>
 
 </body>
 </html>

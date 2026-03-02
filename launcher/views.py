@@ -28,7 +28,7 @@ from pathlib import Path
 
 from .models import Presentation
 from launcher.models import SlideItem
-
+from django.contrib.auth.decorators import login_required
 
 
 
@@ -60,7 +60,7 @@ def category_page(request, slug):
         "tools": tools
     })
 """
-
+@login_required(login_url="login")
 def category_page(request, slug):
     category = get_object_or_404(Category, slug=slug)
     tools = category.tools.filter(visible=True).order_by("name")
@@ -574,82 +574,7 @@ def view_run_logs(request, run_id):
             "run": run
         }
     )
-"""
-from django.utils import timezone
-from .models import ToolRun, LayoutMetadata
 
-@csrf_exempt
-def klayout_run(request):
-    if request.method != "POST":
-        return JsonResponse({"ok": False, "error": "POST required"}, status=400)
-
-    upload = request.FILES.get("file")
-    if not upload:
-        return JsonResponse({"ok": False, "error": "No GDS uploaded"}, status=400)
-
-    run_dir = os.path.join(settings.BASE_DIR, "runs", uuid.uuid4().hex)
-    os.makedirs(run_dir, exist_ok=True)
-
-    gds_path = os.path.join(run_dir, upload.name)
-    with open(gds_path, "wb") as f:
-        for chunk in upload.chunks():
-            f.write(chunk)
-
-    run = ToolRun.objects.create(
-        tool=Tool.objects.get(slug="klayout"),
-        user=request.user if request.user.is_authenticated else None,
-        input_file=upload.name,
-        run_dir=run_dir,
-        status="running",
-    )
-
-    wsl_gds = "/mnt/c" + gds_path.replace("C:", "").replace("\\", "/")
-    wsl_run = "/mnt/c" + run_dir.replace("C:", "").replace("\\", "/")
-
-    subprocess.Popen([
-        "wsl", "bash", "-lc",
-        f"klayout -e '{wsl_gds}' && "
-        f"klayout -b -r scripts/klayout_extract.py '{wsl_gds}' '{wsl_run}'"
-    ])
-
-    return JsonResponse({
-        "ok": True,
-        "run_id": run.id,
-        "message": "Opened in KLayout + metadata generation started"
-    })
-    run.status = "success"
-    run.completed_at = timezone.now()
-    run.save()
-
-    # 🔥 AUTO-GENERATE PNG
-    generate_klayout_png(run, full_path)
-    # 🔥 AUTO-CREATE PRESENTATION (already added)
-    create_presentation_for_run(run)
-
-    return run
-
-import os
-import subprocess
-from django.conf import settings
-from .models import LayoutMetadata
-
-def generate_klayout_png(run, gds_path):
-    out_dir = os.path.join(settings.BASE_DIR, "runs", str(run.id))
-    os.makedirs(out_dir, exist_ok=True)
-
-    png_path = os.path.join(out_dir, "layout.png")
-
-    script = os.path.join(settings.BASE_DIR, "scripts", "klayout_export_png.py")
-
-    subprocess.run([
-        "wsl", "bash", "-lc",
-        f"klayout -b -r {script} {gds_path} {png_path}"
-    ], check=True)
-
-    metadata, _ = LayoutMetadata.objects.get_or_create(run=run)
-    metadata.png_preview = png_path
-    metadata.save()
-"""
 import os
 import uuid
 import time
@@ -668,92 +593,7 @@ from .models import ToolRun, Tool, RunArtifact
 # ---------------------------
 def wsl_path(p):
     return "/mnt/c" + p.replace("C:", "").replace("\\", "/")
-"""
-@csrf_exempt
-def klayout_run(request):
-    if request.method != "POST":
-        return JsonResponse({"ok": False, "error": "POST required"}, status=400)
 
-    upload = request.FILES.get("file")
-    if not upload:
-        return JsonResponse({"ok": False, "error": "No GDS uploaded"}, status=400)
-
-    # -------------------------
-    # Create run directory
-    # -------------------------
-    run_dir_name = uuid.uuid4().hex
-    run_dir = os.path.join(settings.MEDIA_ROOT, "runs", run_dir_name)
-
-    #run_dir = os.path.join(settings.BASE_DIR, "uploads", "runs", run_dir_name)
-    os.makedirs(run_dir, exist_ok=True)
-
-    gds_path = os.path.join(run_dir, "generated_design.gds")
-    with open(gds_path, "wb") as f:
-        for chunk in upload.chunks():
-            f.write(chunk)
-
-    # -------------------------
-    # Create ToolRun
-    # -------------------------
-    run = ToolRun.objects.create(
-        tool=Tool.objects.get(slug="klayout"),
-        user=request.user if request.user.is_authenticated else None,
-        input_file=upload.name,
-        run_dir=run_dir,
-        status="running",
-    )
-
-    # -------------------------
-    # Output paths
-    # -------------------------
-    png_path = os.path.join(run_dir, "preview.png")
-    meta_path = os.path.join(run_dir, "metadata.json")
-    log_path = os.path.join(run_dir, "klayout.log")
-
-    # -------------------------
-    # Run KLayout (NEVER raise)
-    # -------------------------
-    cmd = (
-        f"export KLAYOUT_GDS='{wsl_path(gds_path)}' && "
-        f"export KLAYOUT_PNG='{wsl_path(png_path)}' && "
-        f"export KLAYOUT_META='{wsl_path(meta_path)}' && "
-        f"klayout -b -r scripts/klayout_extract.py "
-        f"> '{wsl_path(log_path)}' 2>&1"
-    )
-
-    proc =subprocess.run(
-        ["wsl", "bash", "-lc", cmd],
-        #check=False
-        #capture_output=True,
-        text=True
-    )
-
-    
-
-    
-    # -------------------------
-    # Register artifacts (ALWAYS)
-    # -------------------------
-    register_klayout_artifacts(run)
-
-    # -------------------------
-    # Create presentation + slides
-    # -------------------------
-    presentation = auto_create_presentation(run)
-
-    # -------------------------
-    # Attach artifacts
-    # -------------------------
-    auto_attach_artifacts_to_slides(presentation, run)
-
-    return JsonResponse({
-        "ok": True,
-        "message": "KLayout batch run completed",
-        "run_id": str(run.id),
-        "presentation_id": presentation.id,
-        "redirect": f"/presentation/{presentation.id}/"
-    })
-"""
 @csrf_exempt
 def klayout_run(request):
     if request.method != "POST":
@@ -983,8 +823,8 @@ def auto_create_presentation(run, user=None):
         description="Auto-generated presentation from KLayout run",
         run=run,
         created_by=user,
-        template=default_template,   # ✅ FK object
-        theme=default_theme,         # ✅ FK object
+        template=default_template,   
+        theme=default_theme,         
     )
 
     return presentation
@@ -1098,90 +938,7 @@ from django.shortcuts import get_object_or_404, render
 from launcher.models import Presentation, PresentationTemplate, PresentationTheme
 
 
-"""
-def presentation_detail(request, pk):
-    presentation = get_object_or_404(Presentation, pk=pk)
 
-    # ===============================
-    # HANDLE TEMPLATE / THEME UPDATE
-    # ===============================
-    if request.method == "POST":
-        if "template_key" in request.POST:
-            tpl = PresentationTemplate.objects.filter(
-                key=request.POST["template_key"]
-            ).first()
-            if tpl:
-                presentation.template = tpl
-                presentation.save()
-
-        if "theme_key" in request.POST:
-            theme = PresentationTheme.objects.filter(
-                key=request.POST["theme_key"]
-            ).first()
-            if theme:
-                presentation.theme = theme
-                presentation.save()
-
-        return redirect(request.path)
-
-    # ===============================
-    # SLIDES
-    # ===============================
-    slides = presentation.slides.all().order_by("order")
-
-    slide_id = request.GET.get("slide")
-    selected_slide = slides.filter(id=slide_id).first() if slide_id else slides.first()
-
-    # ===============================
-    # ITEMS + INLINE CONTENT
-    # ===============================
-    items = []
-
-    if selected_slide:
-        for item in selected_slide.items.select_related("artifact"):
-            item.inline_content = None
-
-            if item.item_type in ("attachment", "log_snippet") and item.artifact:
-                abs_path = Path(settings.MEDIA_ROOT) / item.artifact.file_path
-                if abs_path.exists():
-                    item.inline_content = abs_path.read_text(
-                        encoding="utf-8", errors="replace"
-                    )
-                else:
-                    item.inline_content = f"[FILE NOT FOUND] {abs_path}"
-
-            items.append(item)
-
-    # ===============================
-    # TEMPLATE RESOLUTION (SAFE)
-    # ===============================
-    template_path = "launcher/presentation/detail.html"
-
-    if presentation.template and presentation.template.base_template:
-        template_path = presentation.template.base_template
-
-    # ===============================
-    # RENDER
-    # ===============================
-    return render(
-        request,
-        template_path,
-        {
-            "presentation": presentation,
-            "slides": slides,
-            "selected_slide": selected_slide,
-            "items": items,
-
-            # current selections
-            "template": presentation.template,
-            "theme": presentation.theme,
-
-            # selectors
-            "available_templates": PresentationTemplate.objects.all(),
-            "available_themes": PresentationTheme.objects.all(),
-        }
-    )
-"""
 from pathlib import Path
 from django.conf import settings
 from django.shortcuts import get_object_or_404, render, redirect
@@ -1342,7 +1099,7 @@ def presentation_pdf(request, pk):
     return response
 
 # launcher/views.py
-
+"""
 from pptx import Presentation as PPTPresentation
 from pptx.util import Inches, Pt
 from pptx.enum.text import PP_ALIGN
@@ -1425,6 +1182,116 @@ def presentation_pptx(request, pk):
                     y += 2.2
 
     # Return REAL PPTX
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="presentation-{pk}.pptx"'
+    )
+
+    prs.save(response)
+    return response
+
+"""
+from pptx import Presentation as PPTPresentation
+from pptx.util import Inches, Pt
+from pptx.enum.text import PP_ALIGN
+from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
+from pptx.dml.color import RGBColor
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from pathlib import Path
+from django.conf import settings
+
+
+def presentation_pptx(request, pk):
+    presentation = get_object_or_404(Presentation, pk=pk)
+    slides = presentation.slides.prefetch_related("items__artifact")
+
+    # Create Presentation (default theme)
+    prs = PPTPresentation()
+
+    # Standard 16:9
+    prs.slide_width = Inches(13.33)
+    prs.slide_height = Inches(7.5)
+
+    # --------------------------------------------------
+    # TITLE SLIDE
+    # --------------------------------------------------
+    title_layout = prs.slide_layouts[0]
+    title_slide = prs.slides.add_slide(title_layout)
+
+    title_slide.shapes.title.text = presentation.title
+
+    subtitle = title_slide.placeholders[1]
+    subtitle.text = f"Run {presentation.run.id} • {presentation.run.tool.name}"
+
+    # --------------------------------------------------
+    # CONTENT SLIDES
+    # --------------------------------------------------
+    for slide in slides:
+
+        # Use built-in Title + Content layout
+        layout = prs.slide_layouts[1]
+        ppt_slide = prs.slides.add_slide(layout)
+
+        # Set title properly (no manual textbox)
+        ppt_slide.shapes.title.text = slide.title
+
+        content_placeholder = ppt_slide.placeholders[1]
+        tf = content_placeholder.text_frame
+        tf.clear()
+
+        image_added = False
+
+        for item in slide.items.all():
+
+            # ------------------------------------------
+            # IMAGE HANDLING
+            # ------------------------------------------
+            if item.item_type == "image" and item.artifact:
+                img_path = Path(settings.MEDIA_ROOT) / item.artifact.file_path
+
+                if img_path.exists():
+
+                    # Remove content placeholder cleanly
+                    sp = content_placeholder.element
+                    sp.getparent().remove(sp)
+
+                    # Add centered image
+                    ppt_slide.shapes.add_picture(
+                        str(img_path),
+                        Inches(1.5),
+                        Inches(1.3),
+                        width=Inches(10)
+                    )
+
+                    image_added = True
+
+            # ------------------------------------------
+            # TEXT HANDLING (Logs / Metadata)
+            # ------------------------------------------
+            elif item.item_type in ("attachment", "log_snippet") and item.artifact:
+                path = Path(settings.MEDIA_ROOT) / item.artifact.file_path
+
+                if path.exists():
+
+                    lines = path.read_text(errors="replace").splitlines()
+
+                    # Limit lines to avoid overflow
+                    for line in lines[:40]:
+                        p = tf.add_paragraph()
+                        p.text = line
+                        p.font.size = Pt(12)
+                        p.level = 0
+
+        # If no content was added, keep slide clean
+        if not image_added and not tf.text.strip():
+            tf.text = "No content available"
+
+    # --------------------------------------------------
+    # RETURN FILE
+    # --------------------------------------------------
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
     )
@@ -1587,20 +1454,10 @@ def view_run_logs(request, run_id):
 
     return render(
         request,
-        "launcher/run_detail.html",   # ✅ CORRECT PATH
+        "launcher/run_detail.html",   
         {"run": run}
     )
-"""
-def view_run_logs(request, run_id):
-    run = get_object_or_404(
-        ToolRun.objects.select_related("tool", "user"),
-        id=run_id
-    )
 
-    return render(request, "launcher/logs/run_detail.html", {
-        "run": run
-    })
-"""
 def download_run_logs(request, run_id):
     run = get_object_or_404(ToolRun, id=run_id)
 
@@ -1670,3 +1527,9 @@ class AddSlideItemAPIView(APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@login_required
+def dashboard(request):
+    return render(request, 'launcher/dashboard.html')
