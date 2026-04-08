@@ -1,31 +1,43 @@
+# ----------------------
 # Python
+# ----------------------
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 
+# ----------------------
 # Virtual env
+# ----------------------
 .venv/
 venv/
+env/
 
+# ----------------------
 # Django
+# ----------------------
 db.sqlite3
 media/
 staticfiles/
 
+# ----------------------
 # EDA outputs
+# ----------------------
 uploads/
+runs/
 *.gds
 *.vcd
 *.log
 
+# ----------------------
+# Environment variables
+# ----------------------
+.env
+
+# ----------------------
 # IDE / OS
+# ----------------------
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-
-# Runtime / generated files
-runs/
-uploads/
-db.sqlite3
-*.gds
-
